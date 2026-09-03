@@ -90,3 +90,22 @@ def test_photos_are_deleted_once_the_lead_is_sent():
 def test_discarding_a_thread_that_never_uploaded_anything_is_harmless():
     uploads.discard("thread-empty")
     uploads.discard("../../etc")
+
+
+def test_the_rate_limit_leaves_room_for_a_whole_interview():
+    """
+    The estimate is now one request PER QUESTION plus one per photo, where it
+    used to be a single modal costing two. At the old limit of 12 a customer
+    answering briskly hit it halfway through handing us their details and was
+    told to slow down — the worst possible moment to interrupt someone.
+    """
+    from schemas import lead_form
+
+    questions = max(
+        len(lead_form.fields_for(t)) for t in ("estimate", "long_distance")
+    )
+    worst_case = questions + 1 + config.MAX_UPLOADS_PER_THREAD  # + the photo step
+    assert config.RATE_LIMIT_PER_MINUTE > worst_case, (
+        f"a full interview with photos costs {worst_case} requests, "
+        f"limit is {config.RATE_LIMIT_PER_MINUTE}"
+    )

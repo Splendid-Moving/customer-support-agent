@@ -42,6 +42,11 @@ We also do long-distance and out-of-state moves.
 We bring a 26ft truck. Disassembly and reassembly of furniture is part of the
 job, not an add-on.
 
+## After you send us an estimate request
+
+A manager goes through it and gets back to you, usually the same day. If you'd
+rather not wait, calling the office is always faster.
+
 ## TVs
 
 We can take a TV off the wall, wrap it, and transport it. We can't mount it at

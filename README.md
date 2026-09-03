@@ -95,7 +95,7 @@ what makes this safe to leave running on a public URL.
 | `services/` | The outside world — the knowledge loader, Resend, photo storage. Nothing here knows the agent exists. |
 | `static/index.html` | The chat page. One file, no build step. |
 | `scripts/import_kb.py` | Turns the KB spreadsheet into the markdown the agent reads. |
-| `tests/` | 140 checks that run in under a second, with no API key and no network. |
+| `tests/` | 145 checks that run in under a second, with no API key and no network. |
 
 Entry points:
 
@@ -121,8 +121,13 @@ python server.py          # http://localhost:8080
 `DRY_RUN` defaults to **true**, which means the lead email is printed to the
 terminal in full and never sent. Read one before you turn it off.
 
+**Keep it true in your local `.env`.** `DRY_RUN=false` belongs on Railway and
+nowhere else — with it off locally, walking through the estimate to check a
+wording change puts a real lead in the office inbox, and it looks exactly like a
+customer's.
+
 ```bash
-pytest                    # 140 checks, no API key needed
+pytest                    # 145 checks, no API key needed
 ```
 
 ---

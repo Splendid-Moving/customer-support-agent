@@ -91,8 +91,11 @@ FLEXIBILITY = (
 # ── Shared fields ──────────────────────────────────────────────────────────────
 
 _CONTACT = [
+    # No greeting here. The lane's `opening` has already said hello one bubble
+    # earlier, and two welcomes back to back is the most obviously robotic thing
+    # a chat agent can do.
     Field_("name", "Your name",
-           ask="Happy to help with that. First off — what's your name?",
+           ask="First off — what's your name?",
            required=True, placeholder="Jordan Lee"),
     Field_("phone", "Phone", kind="tel",
            ask="Thanks {name}. What's the best number for a manager to reach you on?",

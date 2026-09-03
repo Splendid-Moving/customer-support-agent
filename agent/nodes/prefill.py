@@ -82,7 +82,7 @@ def prefill(state: SupportState) -> dict:
         # Not worth failing a lead over. Without this the customer answers one or
         # two extra questions, which is a far better outcome than an error.
         logger.exception("Prefill failed; asking everything")
-        return {"lead_type": lead_type, "lead": {}}
+        return {"lead_type": lead_type, "lead": {}, "lead_submitted": False}
 
     by_name = {f.name: f for f in lead_form.fields_for(lead_type)}
     for name, value in result.model_dump().items():
@@ -97,4 +97,10 @@ def prefill(state: SupportState) -> dict:
 
     if known:
         logger.info("Prefill: already knew %s", ", ".join(sorted(known)))
-    return {"lead_type": lead_type, "lead": known}
+
+    # Clearing lead_submitted matters more than it looks. submit_lead refuses to
+    # send twice, which is right for a retried request and WRONG for a customer
+    # who genuinely wants a second quote — a move for their office, say — in the
+    # same conversation. Without this reset that second lead is silently dropped
+    # and nobody ever finds out. Entering this lane means a new lead is starting.
+    return {"lead_type": lead_type, "lead": known, "lead_submitted": False}

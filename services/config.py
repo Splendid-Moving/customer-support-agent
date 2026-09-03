@@ -114,8 +114,19 @@ MAX_MESSAGE_CHARS = 2000
 #: Turns allowed in one conversation before it is closed out with a phone number.
 MAX_TURNS_PER_THREAD = 60
 
-#: Messages per IP per minute.
-RATE_LIMIT_PER_MINUTE = 12
+#: Requests per IP per minute — chat turns and photo uploads share the budget.
+#:
+#: Was 12, which was fine when the estimate was one modal costing two requests.
+#: The interview costs one request PER QUESTION, and each photo is another, so a
+#: customer answering briskly and attaching six pictures now spends well over
+#: twenty inside a minute. At 12 they hit the limit halfway through giving us
+#: their details and got told to slow down, which is the worst possible moment
+#: to interrupt someone who is in the middle of handing you a job.
+#:
+#: 40 still stops a script dead — an actual abuser makes hundreds — and the real
+#: ceiling on cost is MAX_TURNS_PER_THREAD, which bounds one conversation
+#: regardless of how fast it is driven.
+RATE_LIMIT_PER_MINUTE = 40
 
 
 # ── Safety ─────────────────────────────────────────────────────────────────────

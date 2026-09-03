@@ -85,3 +85,24 @@ def test_a_refusal_never_explains_the_rules_it_just_enforced():
 def test_refusing_costs_no_model_call():
     result = refuse.refuse({"guard": "injection"})
     assert result["messages"][0].content == refuse.REPLIES["injection"]
+
+
+# ── Follow-up after a lead has already been sent ───────────────────────────────
+
+def test_the_router_is_told_when_a_lead_already_went_out():
+    """
+    Found in a real conversation. The customer finished the estimate, was told a
+    manager would call, and asked "how long do i wait" — and the router started
+    a brand new interview: "First off, what's your name?", to someone who had
+    just given their name.
+    """
+    plain = router._system_prompt({})
+    after = router._system_prompt({"lead_submitted": True})
+    assert plain == router.SYSTEM_PROMPT
+    assert len(after) > len(plain)
+    assert "ALREADY sent" in after
+
+
+def test_a_plain_question_is_never_a_reason_to_open_the_form():
+    guidance = router.SYSTEM_PROMPT.lower()
+    assert "how long do i wait" in guidance

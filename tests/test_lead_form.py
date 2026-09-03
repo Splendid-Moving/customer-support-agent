@@ -124,3 +124,27 @@ def test_the_spec_is_json_serialisable():
     """It is sent to the browser as JSON; a dataclass leaking through breaks the form."""
     import json
     json.dumps(lead_form.spec("long_distance"))
+
+
+# ── Wording ────────────────────────────────────────────────────────────────────
+
+def test_the_first_question_does_not_greet_again():
+    """
+    The lane's opening line has already said hello one message earlier. Two
+    welcomes back to back — "Happy to get that sorted." / "Happy to help with
+    that." — is the most obviously robotic thing a chat agent can do, and it
+    shipped.
+    """
+    first = lead_form.fields_for("estimate")[0]
+    assert first.name == "name"
+    greetings = ("happy to", "hello", "hi ", "thanks for", "great!")
+    lowered = first.ask.lower()
+    for greeting in greetings:
+        assert greeting not in lowered, f"first question opens with {greeting!r}"
+
+
+def test_every_field_has_something_to_say():
+    """A missing `ask` silently falls back to 'What's your <label>?'."""
+    for lead_type in ("estimate", "long_distance"):
+        for f in lead_form.fields_for(lead_type):
+            assert f.ask.strip(), f"{lead_type}/{f.name} has no question written"

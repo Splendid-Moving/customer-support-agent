@@ -87,6 +87,10 @@ to look their record up.
   "can I talk to a human?"
 
 Rules:
+- A plain question is **knowledge**, whatever it is about. "how long do I wait?", \
+"when will someone call?", "what happens next?" are questions to be answered, \
+not requests to price a move. Only route to a lead lane when the customer is \
+asking us to QUOTE something or is handing over the details of their move.
 - If they are only asking what something costs IN GENERAL, that is **knowledge** \
 — we publish our hourly rates by crew size and they should just get the number. \
 This holds in every language: "how much for a 1 bedroom" and "cuánto cuesta \
@@ -105,6 +109,30 @@ question costs nothing; opening a form on someone who wanted a one-line answer \
 loses the job."""
 
 
+#: Added to the prompt once a lead has already gone to the office in this
+#: conversation. Without it the router happily starts a second interview on the
+#: customer's first follow-up question — they ask "how long do I wait?" and get
+#: "First off, what's your name?", having just given their name.
+ALREADY_SUBMITTED = """
+
+IMPORTANT — this conversation has ALREADY sent an estimate request to the \
+office, and the customer has been told a manager will call them.
+
+Anything they say now about that move — how long it takes, when someone will \
+call, what happens next, adding a detail they forgot — is **knowledge**. They \
+are following up, not asking to start again.
+
+Route to a lead lane only if they are clearly asking about a SEPARATE move: a \
+different property, a second job, a friend's move."""
+
+
+def _system_prompt(state: SupportState) -> str:
+    prompt = SYSTEM_PROMPT
+    if state.get("lead_submitted"):
+        prompt += ALREADY_SUBMITTED
+    return prompt
+
+
 def route(state: SupportState) -> dict:
     messages = state.get("messages", [])
     if not messages:
@@ -116,7 +144,7 @@ def route(state: SupportState) -> dict:
     # history drags the classifier toward whatever dominated earlier in the
     # conversation.
     recent = messages[-4:]
-    decision = model.invoke([SystemMessage(content=SYSTEM_PROMPT), *recent])
+    decision = model.invoke([SystemMessage(content=_system_prompt(state)), *recent])
 
     intent = decision.intent if decision.intent in VALID else "knowledge"
     logger.info("Router: %s — %s", intent, decision.reasoning)
