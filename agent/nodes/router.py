@@ -78,11 +78,12 @@ answers them.
   "I'm relocating to Seattle in June"
   "how much to move from LA to Phoenix?"
 
-**handoff** — they need a person with account access. An existing booking, a \
-change of date, a bill, a complaint about a completed job, damage, or an \
-explicit request to speak to someone.
+**handoff** — they want something DONE to a specific existing booking, or they \
+have a complaint about a job we already did. The test is whether a person needs \
+to look their record up.
   "I need to move my booking to Saturday"
   "your guys scratched my table"
+  "I paid the deposit but never got a confirmation"
   "can I talk to a human?"
 
 Rules:
@@ -94,6 +95,11 @@ mudar un apartamento de una recámara" are the same question, and both are \
 requesting a quote.
 - It is **estimate** only when the move being priced is clearly their own.
 - Anything leaving California is **long_distance**, whichever way it is phrased.
+- Asking what a POLICY IS — cancellation, deposits, damage, payment, heavy items \
+— is **knowledge**, even when phrased personally. "Can I cancel if my closing \
+falls through?" wants the cancellation policy, and we publish it. It only \
+becomes **handoff** when they want us to actually cancel or change a booking \
+that already exists.
 - When torn between knowledge and estimate, choose **knowledge**. Answering a \
 question costs nothing; opening a form on someone who wanted a one-line answer \
 loses the job."""

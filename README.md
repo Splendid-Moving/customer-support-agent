@@ -85,12 +85,13 @@ what makes this safe to leave running on a public URL.
 
 | Path | What lives there |
 |---|---|
-| `knowledge/` | **The facts the agent may state.** Plain markdown. Edit these to change what it knows — no rebuild, no restart. Start with `knowledge/README.md`. |
+| `knowledge/` | **The facts the agent may state.** Generated from `knowledge/source/splendid_moving_kb.xlsx` — edit the spreadsheet, run `python scripts/import_kb.py`. Start with `knowledge/README.md`. |
 | `schemas/persona.py` | Who it is and how it talks. Change this to change the voice. |
 | `schemas/lead_form.py` | What the estimate form asks and what counts as a valid answer. One definition; the browser, the validator and the email all read it. |
 | `agent/` | The graph. `state.py` is the shared memory, `graph.py` wires it together, `nodes/` is one file per step. |
 | `services/` | The outside world — the knowledge loader, Resend, photo storage. Nothing here knows the agent exists. |
 | `static/index.html` | The chat page. One file, no build step. |
+| `scripts/import_kb.py` | Turns the KB spreadsheet into the markdown the agent reads. |
 | `tests/` | 140 checks that run in under a second, with no API key and no network. |
 
 Entry points:
@@ -124,13 +125,37 @@ pytest                    # 140 checks, no API key needed
 
 ## Changing what it knows
 
-Edit or add a markdown file in `knowledge/`. That's the whole process — the next
-message picks it up.
+The knowledge base is one spreadsheet: `knowledge/source/splendid_moving_kb.xlsx`.
 
-The agent can only say what is in there. If a customer asks something the files
-don't cover, it will tell them it doesn't know and offer a follow-up, which is
-the correct behaviour and also your signal that something is missing from the
-knowledge base. `knowledge/README.md` explains how to write it well.
+```bash
+# 1. edit the spreadsheet
+# 2. regenerate the markdown the agent reads
+python scripts/import_kb.py
+# 3. commit both
+```
+
+The importer refuses duplicate ids, and prints any row whose `notes` say
+"confirm" so an unresolved answer does not go live by accident.
+
+The spreadsheet is the editing surface because the office can add a row without
+touching git. The markdown is what ships because a spreadsheet is a binary file —
+a commit that quietly changes the hourly rate would show up in git as "the file
+changed" and nothing more, with nobody able to review what the agent is about to
+start telling customers.
+
+`company.md` is the one hand-written file, holding background the spreadsheet
+doesn't cover (hours, service area, what comes with the crew). The importer
+leaves it alone.
+
+The agent can only say what is in `knowledge/`. If a customer asks something it
+doesn't cover, it says so and offers a follow-up — which is correct behaviour and
+also your signal that a row is missing. `knowledge/README.md` explains how to
+write a good one.
+
+**The `notes` column is operating knowledge, not a comment.** "Ask how many
+movers before quoting" and "escalate the exact amount to the office" are carried
+into the prompt as `HANDLING:` lines. The agent follows them and never repeats
+them to the customer.
 
 ---
 
