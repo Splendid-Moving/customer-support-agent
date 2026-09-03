@@ -18,6 +18,7 @@ easiest way to break this app, so the decision is made in exactly one place —
 import json
 import logging
 import sqlite3
+import warnings
 import time
 import uuid
 from collections import defaultdict, deque
@@ -35,6 +36,14 @@ from services import config, knowledge, tracing, uploads
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+# Streaming with stream_mode="messages" makes LangChain serialise every chunk of
+# every model call, including the structured-output ones in the guard, router and
+# prefill — whose `parsed` field pydantic then warns about, several times per
+# turn. The warning is about a field we never read, on chunks we filter out by
+# node name anyway. Left unfiltered it is most of what ends up in the Railway
+# log, which is the same as having no log.
+warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
 
 STATIC = Path(__file__).parent / "static"
 
@@ -119,13 +128,15 @@ class Turn(BaseModel):
     """
     One input from the browser.
 
-    Exactly one of these is set. `message` is a normal chat turn; `form` is the
-    estimate form coming back; `cancelled` is the customer closing it.
+    `message` is an ordinary chat turn. `reply` is an answer to whatever the
+    agent is currently asking during the estimate interview — one of
+    {"answer": "..."} / {"skip": true} / {"photo_ids": [...]}. `cancelled` backs
+    out of the interview.
     """
 
     thread_id: str = ""
     message: str = ""
-    form: dict | None = None
+    reply: dict | None = None
     cancelled: bool = False
 
 
@@ -152,9 +163,9 @@ def _graph_input(graph, cfg: dict, turn: Turn):
     """
     Translate a browser request into the right kind of graph input.
 
-    THIS is the resume protocol, in one place. If the graph is paused, whatever
-    arrives is an answer to the interrupt and must be wrapped in a Command. If it
-    is not paused, it is a new message.
+    THIS is the resume protocol, in one place. If the graph is paused mid-
+    interview, whatever arrives is an answer and must be wrapped in a Command. If
+    it is not paused, it is a new message.
     """
     if _pending_interrupt(graph, cfg) is None:
         return {"messages": [HumanMessage(content=turn.message)]}, cfg
@@ -162,11 +173,19 @@ def _graph_input(graph, cfg: dict, turn: Turn):
     resume_cfg = tracing.as_resume(cfg)
     if turn.cancelled:
         return Command(resume={"cancelled": True}), resume_cfg
-    if turn.form is not None:
-        return Command(resume=turn.form), resume_cfg
-    # They typed in the chat box while the form was open. collect_lead treats a
-    # non-dict as "show it again" rather than losing what they had entered.
-    return Command(resume=turn.message), resume_cfg
+    if turn.reply is not None:
+        return Command(resume=turn.reply), resume_cfg
+    # They typed in the message box while a question was on screen. That IS the
+    # answer — the whole point of the conversational form is that there is no
+    # difference between talking and answering.
+    return Command(resume={"answer": turn.message}), resume_cfg
+
+
+#: Nodes whose model output is the customer's reply, and may therefore be
+#: streamed to the browser as it is generated. Everything else — the guard, the
+#: router, prefill — is machinery producing structured data, and forwarding its
+#: tokens would render classification JSON into the chat.
+STREAMING_NODES = {"knowledge", "handoff"}
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
@@ -249,23 +268,42 @@ async def chat(request: Request, turn: Turn):
             graph_input, run_cfg = _graph_input(graph, cfg, turn)
 
             final: dict = {}
-            for chunk in graph.stream(graph_input, run_cfg, stream_mode="values"):
-                final = chunk
+            streamed = ""
 
-            # A pause is read back off the state rather than out of the stream:
-            # `values` does not carry __interrupt__, and the state is the
-            # authority on whether this run actually stopped at the form.
+            for mode, chunk in graph.stream(
+                graph_input, run_cfg, stream_mode=["messages", "values"]
+            ):
+                if mode == "messages":
+                    token, meta = chunk
+                    if meta.get("langgraph_node") not in STREAMING_NODES:
+                        continue
+                    text = token.content if isinstance(token.content, str) else ""
+                    if text:
+                        streamed += text
+                        yield event("token", {"text": text})
+                elif mode == "values":
+                    final = chunk
+
+            # Paused mid-interview: the next question, not a finished answer.
             if (pending := _pending_interrupt(graph, cfg)) is not None:
-                yield event("form", {"paused": True, "form": pending})
+                yield event("ask", {"paused": True, "ask": pending})
                 return
 
             messages = final.get("messages") or []
             reply = messages[-1].content if messages else ""
+
+            # What was streamed is the knowledge node's DRAFT. answer_check may
+            # have sent it back and had it rewritten, or replaced it outright
+            # with the handoff line — in which case the browser is showing text
+            # that never got approved, and has to be corrected. In the common
+            # case these are identical and nothing is sent.
+            corrected = reply if reply.strip() != streamed.strip() else ""
             yield event(
                 "done",
                 {
                     "paused": False,
-                    "reply": reply or "Sorry, I lost that one — say it again?",
+                    "reply": corrected,
+                    "streamed": bool(streamed) and not corrected,
                     "intent": final.get("intent", ""),
                 },
             )
@@ -279,6 +317,7 @@ async def chat(request: Request, turn: Turn):
                 {
                     "paused": False,
                     "error": f"{type(exc).__name__}",
+                    "streamed": False,
                     "reply": (
                         "Something went wrong on my end — sorry. Give the office a "
                         f"call on {config.COMPANY_PHONE} and they'll sort you out."

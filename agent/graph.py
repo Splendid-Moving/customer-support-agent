@@ -38,6 +38,7 @@ from agent.nodes import collect_lead as collect_lead_node
 from agent.nodes import guard as guard_node
 from agent.nodes import handoff as handoff_node
 from agent.nodes import knowledge as knowledge_node
+from agent.nodes import prefill as prefill_node
 from agent.nodes import refuse as refuse_node
 from agent.nodes import router as router_node
 from agent.nodes import submit_lead as submit_lead_node
@@ -66,6 +67,7 @@ def build_graph(checkpointer=None):
     builder.add_node("knowledge", knowledge_node.answer)
     builder.add_node("answer_check", answer_check_node.check)
 
+    builder.add_node("prefill", prefill_node.prefill)
     builder.add_node("collect_lead", collect_lead_node.collect_lead)
     builder.add_node("submit_lead", submit_lead_node.submit_lead)
 
@@ -80,8 +82,9 @@ def build_graph(checkpointer=None):
     builder.add_conditional_edges(
         "router",
         router_node.pick_lane,
-        {"knowledge": "knowledge", "collect_lead": "collect_lead", "handoff": "handoff"},
+        {"knowledge": "knowledge", "prefill": "prefill", "handoff": "handoff"},
     )
+    builder.add_edge("prefill", "collect_lead")
 
     # The rewrite loop. answer_check either commits the draft as a message and
     # ends, or sends it back with one specific complaint. It gives up on its own

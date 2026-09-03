@@ -24,10 +24,11 @@ offers…". And it answers **only** from the files in `knowledge/`. Ask it somet
 that isn't in there and it says so and offers to have someone follow up, rather
 than inventing a plausible answer.
 
-**Collects estimates.** Ask for a quote, or mention a move out of state, and a
-form slides up in the chat: contact details, addresses, size of the place, and
-photos of what's moving. That goes straight to the office inbox with the photos
-attached, and a manager takes it from there.
+**Collects estimates, by asking.** Ask for a quote, or mention a move out of
+state, and the agent just keeps talking — one question at a time, contact
+details through to photos of what's moving. Anything the customer already
+mentioned is skipped rather than asked again. At the end it emails the office
+with the photos attached, and a manager takes it from there.
 
 **Ignores anyone trying to reprogram it.** "Ignore all previous instructions" and
 its many cousins get a polite line about moving and nothing else.
@@ -36,12 +37,12 @@ its many cousins get a polite line about moving and nothing else.
 
 ## The one thing to understand
 
-**The form is a genuine pause.**
+**Every question is a genuine pause.**
 
-When the agent shows the estimate form, the conversation *stops*. Not "waits" —
+When the agent asks for a phone number, the conversation *stops*. Not "waits" —
 the run ends, the state is written to disk, and the server is free. When the
-customer submits, minutes later, it picks up on the exact line it stopped at with
-the whole conversation intact.
+answer arrives, minutes later, it picks up on the exact line it stopped at with
+the whole conversation intact. Nine questions is nine of those.
 
 That is what LangGraph is for, and it is the reason this is a graph rather than a
 script. It is also the part that is easiest to break: input arriving while the
@@ -65,7 +66,9 @@ router ─┬─► knowledge ──► answer_check ─────────
         │        ▲              │
         │        └── rewrite ───┘
         │
-        ├─► collect_lead  ⏸ SHOWS THE FORM ──► submit_lead ► END
+        ├─► prefill ──► collect_lead ──► submit_lead ──► END
+        │                    ⏸
+        │              pauses once per question
         │
         └─► handoff ───────────────────────────────────► END
 ```
@@ -87,7 +90,7 @@ what makes this safe to leave running on a public URL.
 |---|---|
 | `knowledge/` | **The facts the agent may state.** Generated from `knowledge/source/splendid_moving_kb.xlsx` — edit the spreadsheet, run `python scripts/import_kb.py`. Start with `knowledge/README.md`. |
 | `schemas/persona.py` | Who it is and how it talks. Change this to change the voice. |
-| `schemas/lead_form.py` | What the estimate form asks and what counts as a valid answer. One definition; the browser, the validator and the email all read it. |
+| `schemas/lead_form.py` | What the agent asks for, how it phrases each question, and what counts as a valid answer. One definition; the interview, the validator and the email all read it. |
 | `agent/` | The graph. `state.py` is the shared memory, `graph.py` wires it together, `nodes/` is one file per step. |
 | `services/` | The outside world — the knowledge loader, Resend, photo storage. Nothing here knows the agent exists. |
 | `static/index.html` | The chat page. One file, no build step. |
@@ -203,6 +206,17 @@ Prompts alone leaked about one message in twenty.
 and only their ids travel through the graph. LangGraph writes the whole state to
 disk after every step, so images in state would be re-saved on every turn and the
 database would balloon.
+
+**Answers stream before they are approved.** The knowledge node's draft is sent
+to the browser token by token, and `answer_check` only finishes afterwards. If a
+draft is rejected, the `done` event carries corrected text and the browser swaps
+it in. In the common case they are identical and nothing is swapped.
+
+**The interview is Python, not a model.** `collect_lead` walks a fixed list of
+fields. A model-run interview asks better questions and can loop forever, and
+whatever it decides a field contains lands in an email a manager acts on. The one
+model call in that lane is `prefill`, which only fills fields the customer can
+see are wrong — never name, phone or email.
 
 **Refusals are fixed strings.** Asking the model to write a polite refusal hands
 the attacker their text in the model's context, which is the thing being defended

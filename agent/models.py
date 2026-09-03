@@ -51,6 +51,14 @@ REGISTRY: dict[str, ModelSpec] = {
         openrouter="anthropic/claude-sonnet-4.6",
         rationale="customer-visible prose, must not drift off the reference material",
     ),
+    # Reads the conversation once at the start of the estimate flow and pulls
+    # out what the customer already said. Narrow, structured, and everything it
+    # returns is re-validated in Python, so cheap is fine.
+    "extract": ModelSpec(
+        openai="gpt-4.1-mini",
+        openrouter="anthropic/claude-haiku-4.5",
+        rationale="one structured read of the conversation, output is Python-validated",
+    ),
     # Short in-persona lines: the refusal, the handoff, the form intro.
     "reply": ModelSpec(
         openai="gpt-4.1-mini",

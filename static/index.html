@@ -3,580 +3,293 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#f2eee6" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#04182c" media="(prefers-color-scheme: dark)" />
-<title>Splendid Moving — talk to us</title>
+<meta name="theme-color" content="#fbfbf9" />
+<title>Splendid Moving — chat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
 /* ─────────────────────────────────────────────────────────────
-   Splendid Moving — customer chat
+   Light, quiet, type-led.
 
-   The look is "packing paper": a warm manila ground, the brand
-   navy used as ink rather than as a fill, and the bright blue
-   kept back for the few things that are actually actionable.
-   The reasoning is that moving is a high-anxiety purchase —
-   strangers carry everything you own — and a cold, generic
-   chatbot shell reads as a machine you cannot hold responsible.
-   Paper, ink and tape read as a person with a clipboard.
+   The restraint is the point. This page is the first contact
+   someone has with a company they are about to let carry
+   everything they own, and a busy interface reads as a sales
+   funnel. One accent colour, one type family, a lot of white,
+   and nothing on screen that isn't doing a job.
+
+   The agent's replies are set flush as plain text rather than
+   in bubbles — bubbles on both sides is the universal look of
+   a support widget, and this should read like a conversation.
    ───────────────────────────────────────────────────────────── */
 
 :root {
-  --paper:      #f2eee6;
-  --paper-lift: #fbf9f5;
-  --tape:       #e3d9c6;
-  --ink:        #032449;
-  --ink-soft:   #4a5b70;
-  --ink-faint:  #8b8577;
-  --accent:     #188bf6;
-  --accent-ink: #0b6ac4;
-  --danger:     #b4432c;
+  --bg:        #fbfbf9;
+  --surface:   #ffffff;
+  --ink:       #10233a;
+  --ink-deep:  #032449;
+  --muted:     #6d7887;
+  --faint:     #99a2ae;
+  --line:      #e9e8e4;
+  --accent:    #188bf6;
+  --accent-dp: #0f6fce;
+  --accent-bg: #eef5ff;
+  --danger:    #b23c26;
 
-  --edge: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
-  --radius: 14px;
-  --gutter: clamp(1.15rem, 4.5vw, 2.75rem);
-
-  --display: "Fraunces", Georgia, "Times New Roman", serif;
-  --body: "Karla", "Helvetica Neue", Helvetica, sans-serif;
+  --sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --serif: "Instrument Serif", Georgia, serif;
+  --gut: clamp(1.15rem, 5vw, 2rem);
+  --r: 12px;
 
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper:      #04182c;
-    --paper-lift: #0a2338;
-    --tape:       #16324b;
-    --ink:        #e8eef6;
-    --ink-soft:   #9db0c6;
-    --ink-faint:  #6b8099;
-    --accent:     #4ba6ff;
-    --accent-ink: #7cc0ff;
-    --edge: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
-    color-scheme: dark;
-  }
-}
-
 * { box-sizing: border-box; }
-
-html, body {
-  height: 100%;
-  margin: 0;
-}
+html, body { height: 100%; margin: 0; }
 
 body {
-  background: var(--paper);
+  background: var(--bg);
   color: var(--ink);
-  font-family: var(--body);
+  font-family: var(--sans);
   font-size: 16px;
-  line-height: 1.55;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
 
-/* Paper grain + a faint blueprint grid. Both are fixed and
-   non-interactive, so scrolling text never drags the texture
-   with it — which is what makes it read as a surface rather
-   than as a background image. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: .5;
-  mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
-}
-@media (prefers-color-scheme: dark) {
-  body::before { mix-blend-mode: screen; opacity: .28; }
-}
-
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: .35;
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px);
-  background-size: 34px 34px;
-  -webkit-mask-image: radial-gradient(ellipse 120% 70% at 50% 0%, #000 10%, transparent 75%);
-          mask-image: radial-gradient(ellipse 120% 70% at 50% 0%, #000 10%, transparent 75%);
-}
-
 .app {
-  position: relative;
-  z-index: 1;
   height: 100dvh;
+  max-width: 720px;
+  margin: 0 auto;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  max-width: 780px;
-  margin: 0 auto;
 }
 
-/* ── Masthead ───────────────────────────────────────────── */
+/* ── Header ─────────────────────────────────────────────── */
 
-.masthead {
+header.bar {
   display: flex;
   align-items: center;
-  gap: .85rem;
-  padding: clamp(.9rem, 3vw, 1.4rem) var(--gutter) .9rem;
-  border-bottom: var(--edge);
+  gap: .75rem;
+  padding: 1rem var(--gut) .85rem;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(8px);
+  position: relative;
 }
 
-.mark {
-  width: 38px; height: 38px;
-  flex: none;
-  border-radius: 10px;
-  background: var(--ink);
-  color: var(--paper);
-  display: grid;
-  place-items: center;
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: -.02em;
-  box-shadow: 0 2px 0 color-mix(in srgb, var(--ink) 25%, transparent);
-}
-
-.masthead h1 {
-  font-family: var(--display);
-  font-variation-settings: "SOFT" 40, "WONK" 1;
-  font-size: 1.06rem;
-  font-weight: 600;
-  letter-spacing: -.015em;
-  margin: 0;
-  line-height: 1.15;
-}
-
-.masthead .sub {
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  font-size: .78rem;
-  color: var(--ink-faint);
-  letter-spacing: .01em;
-}
-
-.pip {
-  width: 6px; height: 6px;
+.avatar {
+  width: 34px; height: 34px; flex: none;
   border-radius: 50%;
-  background: #35a06a;
-  box-shadow: 0 0 0 0 color-mix(in srgb, #35a06a 60%, transparent);
-  animation: pulse 2.8s ease-out infinite;
-}
-@keyframes pulse {
-  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, #35a06a 55%, transparent); }
-  70%  { box-shadow: 0 0 0 7px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
+  background: var(--ink-deep);
+  color: #fff;
+  display: grid; place-items: center;
+  font-size: .82rem; font-weight: 600; letter-spacing: .01em;
 }
 
-.masthead .spacer { flex: 1; }
+.who-name { font-weight: 600; font-size: .95rem; letter-spacing: -.01em; line-height: 1.25; }
+.who-sub {
+  display: flex; align-items: center; gap: .38rem;
+  font-size: .78rem; color: var(--faint);
+}
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #34a853; }
 
-.ghost {
-  appearance: none;
-  border: var(--edge);
+.bar .grow { flex: 1; }
+
+.linkbtn {
+  border: 0; background: none; font: inherit;
+  font-size: .82rem; color: var(--muted);
+  padding: .5rem .35rem; cursor: pointer; border-radius: 8px;
+  min-height: 40px;
+}
+.linkbtn:hover { color: var(--ink); }
+.linkbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Progress rail during the estimate interview. Two pixels of
+   reassurance that this has an end. */
+.rail {
+  position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
   background: transparent;
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: .78rem;
-  letter-spacing: .02em;
-  padding: .5rem .8rem;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: color .18s, border-color .18s, background .18s;
-  min-height: 36px;
 }
-.ghost:hover { color: var(--ink); background: var(--paper-lift); }
-.ghost:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rail i {
+  display: block; height: 100%; width: 0;
+  background: var(--accent);
+  transition: width .45s cubic-bezier(.22,.9,.28,1);
+}
 
 /* ── Thread ─────────────────────────────────────────────── */
 
 .thread {
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: clamp(1.2rem, 5vw, 2.4rem) var(--gutter) 1rem;
+  padding: clamp(1.5rem, 6vw, 2.75rem) var(--gut) .75rem;
   scrollbar-width: thin;
-  scrollbar-color: var(--tape) transparent;
+  scrollbar-color: #dcdbd6 transparent;
 }
-.thread::-webkit-scrollbar { width: 8px; }
-.thread::-webkit-scrollbar-thumb { background: var(--tape); border-radius: 99px; }
+.thread::-webkit-scrollbar { width: 7px; }
+.thread::-webkit-scrollbar-thumb { background: #dcdbd6; border-radius: 99px; }
 
-/* Opening screen. Big, warm, and answering the question the
-   customer actually has: who am I talking to. */
-.opener { max-width: 34ch; }
-
-.opener h2 {
-  font-family: var(--display);
-  font-variation-settings: "SOFT" 60, "WONK" 1;
-  font-weight: 600;
-  font-size: clamp(2.1rem, 8.5vw, 3.1rem);
-  line-height: 1.02;
-  letter-spacing: -.03em;
-  margin: 0 0 .55rem;
+.hello { max-width: 30ch; margin-bottom: 2.25rem; }
+.hello h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2.15rem, 9vw, 2.9rem);
+  line-height: 1.05;
+  letter-spacing: -.02em;
+  color: var(--ink-deep);
+  margin: 0 0 .5rem;
 }
-.opener h2 em {
-  font-style: normal;
-  color: var(--accent-ink);
-}
-.opener p {
-  margin: 0 0 1.6rem;
-  color: var(--ink-soft);
-  font-size: 1.02rem;
-  max-width: 30ch;
-}
+.hello h1 em { font-style: italic; }
+.hello p { margin: 0; color: var(--muted); font-size: 1rem; }
 
-.chips { display: flex; flex-wrap: wrap; gap: .5rem; }
-
+.chips { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: 1.5rem; }
 .chip {
-  appearance: none;
-  font: inherit;
-  font-size: .87rem;
-  font-weight: 500;
-  padding: .58rem .95rem;
+  font: inherit; font-size: .88rem;
+  padding: .55rem .9rem;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
-  background: var(--paper-lift);
+  border: 1px solid var(--line);
+  background: var(--surface);
   color: var(--ink);
-  cursor: pointer;
-  min-height: 44px;
-  transition: transform .16s cubic-bezier(.2,.9,.3,1), border-color .16s, box-shadow .16s;
+  cursor: pointer; min-height: 42px;
+  transition: border-color .16s, background .16s, transform .16s;
 }
-.chip:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent);
-  box-shadow: 0 4px 0 -1px color-mix(in srgb, var(--accent) 30%, transparent);
-}
-.chip:active { transform: translateY(0); }
+.chip:hover { border-color: var(--accent); background: var(--accent-bg); transform: translateY(-1px); }
 .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* Staggered reveal on load. One orchestrated moment beats a
-   dozen scattered fidgets. */
-.reveal { opacity: 0; animation: rise .62s cubic-bezier(.22,.9,.28,1) forwards; }
-@keyframes rise {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: none; }
-}
+.reveal { animation: rise .5s cubic-bezier(.22,.9,.28,1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
-/* ── Messages ───────────────────────────────────────────── */
-/* Asymmetric on purpose: the customer gets a solid bubble, the
-   agent gets flush editorial text under a rule. Two mirrored
-   bubbles is the one layout every chat widget already uses. */
-
-.msg { margin: 0 0 1.5rem; max-width: 62ch; }
-
-.msg.them {
-  border-left: 2px solid var(--accent);
-  padding-left: clamp(.85rem, 3vw, 1.1rem);
-}
-.msg.them .who {
-  font-family: var(--display);
-  font-size: .74rem;
-  font-weight: 600;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  margin-bottom: .3rem;
-}
-.msg.them .body { font-size: 1.02rem; }
+/* Messages */
+.msg { margin-bottom: 1.6rem; max-width: 60ch; }
+.msg.them { white-space: pre-wrap; }
+.msg.them p { margin: 0 0 .75rem; }
+.msg.them p:last-child { margin-bottom: 0; }
 
 .msg.me {
   margin-left: auto;
-  background: var(--ink);
-  color: var(--paper);
-  padding: .7rem 1rem;
-  border-radius: var(--radius) var(--radius) 4px var(--radius);
   width: fit-content;
-  max-width: min(46ch, 88%);
-  font-size: .97rem;
-  box-shadow: 0 2px 0 color-mix(in srgb, var(--ink) 22%, transparent);
+  max-width: min(42ch, 85%);
+  background: var(--ink-deep);
+  color: #fff;
+  padding: .6rem .95rem;
+  border-radius: 16px 16px 5px 16px;
+  font-size: .96rem;
 }
 
-.msg .body p { margin: 0 0 .7rem; }
-.msg .body p:last-child { margin-bottom: 0; }
-.msg .body a { color: inherit; }
+/* The caret that follows the streaming text. */
+.caret {
+  display: inline-block;
+  width: 2px; height: 1.05em;
+  background: var(--accent);
+  margin-left: 2px;
+  vertical-align: -.18em;
+  animation: blink 1.05s steps(2, start) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
 
-/* Thinking indicator. The rotating line matters: a bare spinner
-   on a three-second wait reads as broken, a line that says what
-   it is doing reads as someone checking. */
-.thinking {
-  display: flex; align-items: center; gap: .6rem;
-  color: var(--ink-faint);
-  font-size: .9rem;
-  margin-bottom: 1.5rem;
-  padding-left: clamp(.85rem, 3vw, 1.1rem);
-  border-left: 2px solid var(--tape);
+.thinking { display: flex; gap: 4px; margin-bottom: 1.6rem; }
+.thinking i {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--faint);
+  animation: bob 1.2s ease-in-out infinite;
 }
-.dots { display: inline-flex; gap: 3px; }
-.dots i {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--ink-faint);
-  animation: bob 1.25s ease-in-out infinite;
-}
-.dots i:nth-child(2) { animation-delay: .14s; }
-.dots i:nth-child(3) { animation-delay: .28s; }
-@keyframes bob {
-  0%, 60%, 100% { transform: translateY(0); opacity: .45; }
-  30%           { transform: translateY(-4px); opacity: 1; }
-}
+.thinking i:nth-child(2) { animation-delay: .15s; }
+.thinking i:nth-child(3) { animation-delay: .3s; }
+@keyframes bob { 0%,60%,100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-4px); } }
 
 /* ── Composer ───────────────────────────────────────────── */
 
-.composer {
-  border-top: var(--edge);
-  padding: .8rem var(--gutter) calc(.8rem + env(safe-area-inset-bottom));
-  background: color-mix(in srgb, var(--paper) 92%, transparent);
+footer.composer {
+  padding: .7rem var(--gut) calc(.9rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter: blur(8px);
 }
 
-.field {
-  display: flex;
-  align-items: flex-end;
-  gap: .55rem;
-  background: var(--paper-lift);
-  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
-  border-radius: var(--radius);
-  padding: .45rem .45rem .45rem .9rem;
-  transition: border-color .18s, box-shadow .18s;
-}
-.field:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
-}
+/* Choice chips and photo thumbnails sit above the input, so the
+   answer always appears in the same place whatever its shape. */
+.assist { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .6rem; }
+.assist:empty { display: none; }
 
-.field textarea {
-  flex: 1;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  resize: none;
-  outline: none;
-  max-height: 132px;
-  padding: .5rem 0;
-  line-height: 1.45;
+.opt {
+  font: inherit; font-size: .87rem;
+  padding: .5rem .85rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink);
+  cursor: pointer; min-height: 40px;
+  transition: border-color .15s, background .15s;
 }
-.field textarea::placeholder { color: var(--ink-faint); }
+.opt:hover { border-color: var(--accent); background: var(--accent-bg); }
+.opt.quiet { color: var(--muted); border-style: dashed; }
+.opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.send {
-  appearance: none;
-  border: 0;
-  width: 44px; height: 44px;
-  flex: none;
-  border-radius: 10px;
-  background: var(--ink);
-  color: var(--paper);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  transition: background .18s, transform .14s, opacity .18s;
+.box {
+  display: flex; align-items: flex-end; gap: .4rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: .3rem .3rem .3rem .85rem;
+  transition: border-color .15s, box-shadow .15s;
 }
-.send:hover:not(:disabled) { background: var(--accent-ink); transform: translateY(-1px); }
-.send:disabled { opacity: .35; cursor: default; }
-.send:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.send svg { width: 19px; height: 19px; }
+.box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
 
-.legal {
-  margin: .55rem 0 0;
-  font-size: .72rem;
-  color: var(--ink-faint);
-  text-align: center;
+.box textarea, .box input[type="date"] {
+  flex: 1; border: 0; background: none; color: inherit;
+  font: inherit; outline: none; resize: none;
+  padding: .55rem 0; max-height: 120px; line-height: 1.5;
+  min-width: 0;
 }
-.legal a { color: inherit; }
+.box textarea::placeholder { color: var(--faint); }
 
-/* ── The estimate form ──────────────────────────────────── */
-/* A bottom sheet on every size. On a phone that is the native
-   gesture; on a desktop it keeps the conversation visible
-   behind it, so filling it in still feels like part of the
-   same exchange rather than a page you were sent to. */
+.icon {
+  width: 40px; height: 40px; flex: none;
+  border: 0; border-radius: 9px;
+  background: none; color: var(--muted);
+  display: grid; place-items: center; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.icon:hover { background: var(--accent-bg); color: var(--accent-dp); }
+.icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.icon svg { width: 19px; height: 19px; }
 
-.scrim {
-  position: fixed; inset: 0; z-index: 40;
-  background: color-mix(in srgb, var(--ink) 45%, transparent);
-  backdrop-filter: blur(3px);
-  opacity: 0;
-  animation: fade .25s ease forwards;
+.go {
+  width: 40px; height: 40px; flex: none;
+  border: 0; border-radius: 9px;
+  background: var(--ink-deep); color: #fff;
+  display: grid; place-items: center; cursor: pointer;
+  transition: opacity .15s, background .15s;
 }
-@keyframes fade { to { opacity: 1; } }
+.go:hover:not(:disabled) { background: var(--accent-dp); }
+.go:disabled { opacity: .28; cursor: default; }
+.go:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.go svg { width: 18px; height: 18px; }
 
-.sheet {
-  position: fixed;
-  z-index: 41;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: min(620px, 100%);
-  max-height: 92dvh;
-  display: flex;
-  flex-direction: column;
-  background: var(--paper-lift);
-  border-radius: 20px 20px 0 0;
-  border: var(--edge);
-  border-bottom: 0;
-  box-shadow: 0 -20px 60px -20px rgba(3, 36, 73, .45);
-  animation: slide .38s cubic-bezier(.22,.9,.28,1) forwards;
+.foot {
+  margin: .55rem 0 0; text-align: center;
+  font-size: .74rem; color: var(--faint);
 }
-@keyframes slide {
-  from { transform: translate(-50%, 100%); }
-  to   { transform: translate(-50%, 0); }
-}
+.foot a { color: inherit; }
 
-.sheet header {
-  padding: 1.3rem var(--gutter) .9rem;
-  border-bottom: 1px dashed var(--tape);
-  position: relative;
-}
-.sheet header h3 {
-  font-family: var(--display);
-  font-variation-settings: "SOFT" 50, "WONK" 1;
-  font-weight: 600;
-  font-size: 1.55rem;
-  letter-spacing: -.025em;
-  margin: 0 0 .3rem;
-}
-.sheet header p {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: .92rem;
-  max-width: 46ch;
-}
-.sheet .close {
-  position: absolute;
-  top: 1rem; right: calc(var(--gutter) - .35rem);
-  width: 40px; height: 40px;
-  border-radius: 10px;
-  border: 0; background: transparent;
-  color: var(--ink-faint);
-  font-size: 1.35rem; line-height: 1;
-  cursor: pointer;
-}
-.sheet .close:hover { color: var(--ink); background: var(--paper); }
-.sheet .close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-.sheet .scroll {
-  overflow-y: auto;
-  padding: 1.1rem var(--gutter) .4rem;
-  display: grid;
-  gap: 1.05rem;
-}
-
-.grp { display: grid; gap: .3rem; }
-
-.grp label {
-  font-size: .78rem;
-  font-weight: 700;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-.grp label .req { color: var(--accent-ink); }
-
-.grp .hint { font-size: .8rem; color: var(--ink-faint); }
-.grp .err  { font-size: .82rem; color: var(--danger); font-weight: 600; }
-
-.grp input,
-.grp select,
-.grp textarea {
-  font: inherit;
-  color: var(--ink);
-  background: var(--paper);
-  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
-  border-radius: 10px;
-  padding: .7rem .8rem;
-  width: 100%;
-  min-height: 46px;
-  outline: none;
-  transition: border-color .16s, box-shadow .16s;
-}
-.grp textarea { min-height: 88px; resize: vertical; }
-.grp input:focus, .grp select:focus, .grp textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
-}
-.grp.bad input, .grp.bad select, .grp.bad textarea {
-  border-color: var(--danger);
-}
-
-/* The photo dropzone is styled as a taped box flap — the one
-   place the "moving" metaphor is allowed to be literal, because
-   it is also the field people skip and it is the field that
-   makes the estimate accurate. */
-.drop {
-  border: 2px dashed var(--tape);
-  border-radius: 12px;
-  padding: 1.1rem;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color .18s, background .18s;
-  background: var(--paper);
-}
-.drop:hover, .drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--paper)); }
-.drop strong { display: block; font-size: .95rem; }
-.drop span { font-size: .82rem; color: var(--ink-faint); }
-.drop input { display: none; }
-
-.shots { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; }
+/* Photo thumbnails */
 .shot {
-  position: relative;
-  width: 68px; height: 68px;
-  border-radius: 9px;
-  overflow: hidden;
-  border: 1px solid var(--tape);
-  animation: rise .35s cubic-bezier(.22,.9,.28,1) both;
+  position: relative; width: 54px; height: 54px;
+  border-radius: 9px; overflow: hidden; border: 1px solid var(--line);
+  animation: rise .3s cubic-bezier(.22,.9,.28,1) both;
 }
 .shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.shot.pending { opacity: .45; }
+.shot.pending { opacity: .4; }
 .shot button {
   position: absolute; top: 2px; right: 2px;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  border: 0;
-  background: color-mix(in srgb, var(--ink) 82%, transparent);
-  color: #fff;
-  font-size: .8rem; line-height: 1;
-  cursor: pointer;
+  width: 19px; height: 19px; border: 0; border-radius: 50%;
+  background: rgba(3,36,73,.82); color: #fff;
+  font-size: .72rem; line-height: 1; cursor: pointer; padding: 0;
 }
 
-.sheet footer {
-  padding: .9rem var(--gutter) calc(1.1rem + env(safe-area-inset-bottom));
-  border-top: 1px dashed var(--tape);
-  display: flex;
-  align-items: center;
-  gap: .8rem;
-}
-.sheet footer .note { font-size: .78rem; color: var(--ink-faint); flex: 1; }
-
-.primary {
-  appearance: none;
-  border: 0;
-  font: inherit;
-  font-weight: 700;
-  letter-spacing: .01em;
-  color: var(--paper);
-  background: var(--ink);
-  padding: .85rem 1.5rem;
-  border-radius: 11px;
-  cursor: pointer;
-  min-height: 48px;
-  transition: background .18s, transform .14s;
-}
-.primary:hover:not(:disabled) { background: var(--accent-ink); transform: translateY(-1px); }
-.primary:disabled { opacity: .5; cursor: default; }
-.primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-
-.formerr {
-  margin: 0 var(--gutter) .2rem;
-  color: var(--danger);
-  font-size: .85rem;
-  font-weight: 600;
-}
+.warn { color: var(--danger); font-size: .82rem; flex-basis: 100%; }
 
 @media (prefers-reduced-motion: reduce) {
-  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   .reveal { opacity: 1; }
 }
 </style>
@@ -584,144 +297,122 @@ body::after {
 <body>
 
 <div class="app">
-  <header class="masthead">
-    <div class="mark" aria-hidden="true">SM</div>
+  <header class="bar">
+    <div class="avatar" aria-hidden="true">AL</div>
     <div>
-      <h1>Splendid Moving</h1>
-      <div class="sub"><span class="pip"></span> Alex is here now</div>
+      <div class="who-name">Alex · Splendid Moving</div>
+      <div class="who-sub"><span class="dot"></span> Usually replies instantly</div>
     </div>
-    <div class="spacer"></div>
-    <button class="ghost" id="restart" type="button">Start over</button>
+    <div class="grow"></div>
+    <button class="linkbtn" id="restart" type="button">Start over</button>
+    <div class="rail"><i id="rail"></i></div>
   </header>
 
   <main class="thread" id="thread" role="log" aria-live="polite" aria-label="Conversation">
-    <div class="opener" id="opener">
-      <h2 class="reveal" style="animation-delay:.05s">Hi — I'm <em>Alex</em>.</h2>
-      <p class="reveal" style="animation-delay:.16s">
-        I'm on the crew here in LA. Ask me anything about your move, or I'll get
-        a manager to put together a real estimate for you.
+    <div class="hello" id="hello">
+      <h1 class="reveal">Hi, I'm <em>Alex</em>.</h1>
+      <p class="reveal" style="animation-delay:.1s">
+        I'm on the crew here in LA. Ask me anything about your move — or I'll get
+        a manager to put a real estimate together for you.
       </p>
-      <div class="chips reveal" style="animation-delay:.27s">
+      <div class="chips reveal" style="animation-delay:.2s">
         <button class="chip" type="button">What do you charge?</button>
         <button class="chip" type="button">What's included?</button>
         <button class="chip" type="button">I'd like an estimate</button>
-        <button class="chip" type="button">I'm moving out of state</button>
+        <button class="chip" type="button">Moving out of state</button>
       </div>
     </div>
   </main>
 
   <footer class="composer">
-    <div class="field">
+    <div class="assist" id="assist"></div>
+    <div class="box" id="box">
       <textarea id="input" rows="1" placeholder="Ask about your move…"
                 aria-label="Your message" autocomplete="off"></textarea>
-      <button class="send" id="send" type="button" aria-label="Send" disabled>
+      <button class="icon" id="clip" type="button" aria-label="Add photos" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+      </button>
+      <input type="file" id="picker" accept="image/*" multiple hidden />
+      <button class="go" id="send" type="button" aria-label="Send" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M5 12h13M12 5l7 7-7 7"/>
-        </svg>
+             stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
       </button>
     </div>
-    <p class="legal">
-      Or call us any day, 6am–11pm — <a href="tel:+13236452636">(323) 645-2636</a>
-    </p>
+    <p class="foot">Or call any day, 6am–11pm — <a href="tel:+13236452636">(323) 645-2636</a></p>
   </footer>
 </div>
 
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Two things in here are load-bearing.
+   Three things in here are load-bearing.
 
-   1. The RESUME PROTOCOL. When the estimate form is open the
-      server has genuinely paused mid-conversation. Sending an
-      ordinary message at that point restarts the whole thing and
-      silently throws the form away, so while a form is open this
-      page only ever posts `form` or `cancelled`.
+   1. THE RESUME PROTOCOL. While the agent is part-way through
+      the estimate questions the server is genuinely paused. An
+      ordinary chat message at that point would restart the whole
+      conversation, so answers go out as {reply: ...} instead.
 
-   2. PHOTOS UPLOAD SEPARATELY, before the form is submitted.
-      They go to /api/upload and we keep only the ids. Nothing
-      big ever travels through the conversation itself.
+   2. TOKENS ARRIVE BEFORE THE ANSWER IS APPROVED. The server
+      streams the model's draft as it is written, and the voice
+      and pricing checks only finish afterwards. If the draft is
+      rejected the `done` event carries corrected text, and we
+      swap it in. Usually it doesn't, and nothing happens.
+
+   3. PHOTOS UPLOAD SEPARATELY, before the answer is sent. Only
+      their ids ever travel through the conversation.
    ───────────────────────────────────────────────────────────── */
 
 const KEY = "splendid-thread";
 const el = (id) => document.getElementById(id);
-const thread = el("thread");
-const input = el("input");
-const sendBtn = el("send");
+const thread = el("thread"), input = el("input"), sendBtn = el("send");
+const assist = el("assist"), clip = el("clip"), picker = el("picker"), rail = el("rail");
 
 let threadId = localStorage.getItem(KEY) || "";
 let busy = false;
-let formOpen = false;
+let asking = null;      // the question the agent is currently waiting on
+let photos = [];        // [{id, url}] for the photo step
 
 /* ── Rendering ─────────────────────────────────────────────── */
 
-function dropOpener() {
-  const opener = el("opener");
-  if (opener) opener.remove();
-}
+function stripHello() { const h = el("hello"); if (h) h.remove(); }
 
-function paragraphs(text) {
-  const wrap = document.createElement("div");
-  wrap.className = "body";
-  String(text).split(/\n{2,}/).forEach((chunk) => {
-    const p = document.createElement("p");
-    p.textContent = chunk.trim();          // textContent, never innerHTML
-    if (p.textContent) wrap.appendChild(p);
-  });
-  return wrap;
-}
-
-function say(who, text) {
-  dropOpener();
+function bubble(who, text) {
+  stripHello();
   const row = document.createElement("div");
-  row.className = "msg " + (who === "me" ? "me" : "them") + " reveal";
-  if (who === "them") {
-    const tag = document.createElement("div");
-    tag.className = "who";
-    tag.textContent = "Alex";
-    row.appendChild(tag);
-    row.appendChild(paragraphs(text));
-  } else {
-    row.textContent = text;
-  }
+  row.className = "msg " + who + " reveal";
+  row.textContent = text || "";
   thread.appendChild(row);
   scroll();
   return row;
 }
 
-const WAITING = ["Checking that…", "One sec…", "Looking it up…"];
-let waitTimer = null;
-
 function thinking(on) {
-  const existing = el("thinking");
-  if (!on) {
-    clearInterval(waitTimer);
-    if (existing) existing.remove();
-    return;
-  }
+  const existing = el("dots");
+  if (!on) { if (existing) existing.remove(); return; }
   if (existing) return;
   const row = document.createElement("div");
-  row.className = "thinking";
-  row.id = "thinking";
-  row.innerHTML = '<span class="dots"><i></i><i></i><i></i></span><span id="waitword"></span>';
+  row.className = "thinking"; row.id = "dots";
+  row.innerHTML = "<i></i><i></i><i></i>";
   thread.appendChild(row);
-
-  let i = 0;
-  el("waitword").textContent = WAITING[0];
-  waitTimer = setInterval(() => {
-    i = (i + 1) % WAITING.length;
-    const word = el("waitword");
-    if (word) word.textContent = WAITING[i];
-  }, 2600);
   scroll();
 }
 
+let pinned = true;
+thread.addEventListener("scroll", () => {
+  pinned = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 60;
+});
 function scroll() {
+  if (!pinned) return;
   requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
+}
+
+function progress(step, total) {
+  rail.style.width = step && total ? Math.round((step / total) * 100) + "%" : "0";
 }
 
 /* ── Talking to the server ─────────────────────────────────── */
 
-async function post(payload) {
+async function post(payload, onToken) {
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -729,33 +420,32 @@ async function post(payload) {
   });
 
   if (!res.ok) {
-    let message = "Something went wrong on my end. Try again in a moment?";
-    try { message = (await res.json()).error || message; } catch (_) {}
-    return { event: "done", reply: message };
+    let msg = "Something went wrong on my end. Try again in a moment?";
+    try { msg = (await res.json()).error || msg; } catch (_) {}
+    return { event: "done", reply: msg };
   }
 
-  // Server-sent events over a POST body, read by hand.
   const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let last = null;
+  const dec = new TextDecoder();
+  let buf = "", last = null;
 
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+    buf += dec.decode(value, { stream: true });
 
     let cut;
-    while ((cut = buffer.indexOf("\n\n")) >= 0) {
-      const raw = buffer.slice(0, cut).trim();
-      buffer = buffer.slice(cut + 2);
+    while ((cut = buf.indexOf("\n\n")) >= 0) {
+      const raw = buf.slice(0, cut).trim();
+      buf = buf.slice(cut + 2);
       if (!raw.startsWith("data:")) continue;
-      let evt;
-      try { evt = JSON.parse(raw.slice(5)); } catch (_) { continue; }
+      let evt; try { evt = JSON.parse(raw.slice(5)); } catch (_) { continue; }
 
-      if (evt.event === "start" && evt.thread_id) {
+      if (evt.event === "start") {
         threadId = evt.thread_id;
         localStorage.setItem(KEY, threadId);
+      } else if (evt.event === "token") {
+        onToken(evt.text);
       } else {
         last = evt;
       }
@@ -764,346 +454,237 @@ async function post(payload) {
   return last || { event: "done", reply: "I lost that one — say it again?" };
 }
 
-function handle(evt) {
-  if (evt.event === "form" && evt.form) {
-    if (evt.form.intro_message && !formOpen) say("them", evt.form.intro_message);
-    openForm(evt.form);
-    return;
-  }
-  if (evt.reply) say("them", evt.reply);
-}
-
-async function send(text) {
-  if (busy || !text.trim()) return;
+async function exchange(payload, echo) {
+  if (busy) return;
   busy = true;
-  sendBtn.disabled = true;
-  say("me", text.trim());
+  asking = null;
+  progress(0, 0);
+  if (echo) bubble("me", echo);
+  setComposer(null);
   thinking(true);
+
+  let live = null, text = "";
+  const onToken = (chunk) => {
+    thinking(false);
+    if (!live) { live = bubble("them", ""); }
+    text += chunk;
+    live.textContent = text;
+    live.appendChild(caret());
+    scroll();
+  };
+
   try {
-    handle(await post({ message: text.trim() }));
+    const evt = await post(payload, onToken);
+    thinking(false);
+    dropCaret(live);
+
+    if (evt.event === "ask") {
+      // A rejected draft plus a question is not a combination the server
+      // produces, so anything streamed here was noise. Clear it.
+      if (live) live.remove();
+      openQuestion(evt.ask);
+    } else if (evt.reply) {
+      // Corrected text: either nothing was streamed, or what was streamed
+      // failed the voice/pricing check and has been rewritten.
+      if (live) live.textContent = evt.reply;
+      else bubble("them", evt.reply);
+    }
   } finally {
     thinking(false);
     busy = false;
-    sync();
+    setComposer(asking);
+    scroll();
   }
 }
 
-/* ── Composer ──────────────────────────────────────────────── */
+function caret() { const c = document.createElement("span"); c.className = "caret"; return c; }
+function dropCaret(row) { const c = row && row.querySelector(".caret"); if (c) c.remove(); }
+
+/* ── The interview ─────────────────────────────────────────── */
+
+function openQuestion(ask) {
+  if (ask.opening) bubble("them", ask.opening);
+  bubble("them", ask.message);
+  progress(ask.step, ask.total);
+  asking = ask;
+}
+
+/**
+ * Reshape the composer around whatever is being asked.
+ *
+ * The input never moves and never disappears — choices and photos appear
+ * above it. Someone who wants to type "actually, hold on" can always do
+ * that, at any point, which is the difference between a conversation and
+ * a form wearing a conversation's clothes.
+ */
+function setComposer(ask) {
+  assist.textContent = "";
+  clip.hidden = true;
+  input.disabled = false;
+
+  const field = ask && ask.field;
+  const kind = ask ? (ask.type === "photos" ? "photos" : field.kind) : "chat";
+
+  input.placeholder =
+    kind === "photos" ? "Or type something…"
+    : field && field.placeholder ? field.placeholder
+    : ask ? "Type your answer…"
+    : "Ask about your move…";
+
+  if (kind === "select" && field.options) {
+    field.options.forEach((opt) => {
+      assist.appendChild(button(opt, () => answer({ answer: opt }, opt)));
+    });
+  }
+
+  if (kind === "date") {
+    const day = document.createElement("input");
+    day.type = "date";
+    day.className = "opt";
+    day.min = new Date().toISOString().slice(0, 10);
+    day.style.minWidth = "10rem";
+    day.addEventListener("change", () => {
+      if (day.value) answer({ answer: day.value }, prettyDate(day.value));
+    });
+    assist.appendChild(day);
+    assist.appendChild(button("Not sure yet", () => answer({ skip: true }, "Not sure yet"), true));
+  }
+
+  if (kind === "photos") {
+    clip.hidden = false;
+    renderShots();
+    if (photos.some((p) => p.id)) {
+      assist.appendChild(button("Send these", () => {
+        answer({ photo_ids: photos.filter((p) => p.id).map((p) => p.id) },
+               photos.length + (photos.length === 1 ? " photo" : " photos"));
+      }));
+    } else {
+      assist.appendChild(button("Add photos", () => picker.click()));
+    }
+    assist.appendChild(button("Skip for now", () => answer({ photo_ids: [] }, "Skip for now"), true));
+  } else if (ask && ask.skippable) {
+    assist.appendChild(button("Skip", () => answer({ skip: true }, "Skip"), true));
+  }
+
+  sync();
+}
+
+function button(label, onClick, quiet) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "opt" + (quiet ? " quiet" : "");
+  b.textContent = label;
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function prettyDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined,
+    { weekday: "short", month: "long", day: "numeric" });
+}
+
+function answer(reply, echo) {
+  if (reply.photo_ids) photos = [];
+  exchange({ reply }, echo);
+}
+
+/* ── Composer wiring ───────────────────────────────────────── */
 
 function sync() {
   sendBtn.disabled = busy || !input.value.trim();
   input.style.height = "auto";
-  input.style.height = Math.min(input.scrollHeight, 132) + "px";
+  input.style.height = Math.min(input.scrollHeight, 120) + "px";
+}
+
+function submitTyped() {
+  const text = input.value.trim();
+  if (!text || busy) return;
+  input.value = "";
+  sync();
+  // While a question is open, typing IS the answer — same protocol, so the
+  // server never mistakes it for a new conversation.
+  if (asking) answer({ answer: text }, text);
+  else exchange({ message: text }, text);
 }
 
 input.addEventListener("input", sync);
 input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    const text = input.value;
-    input.value = "";
-    sync();
-    send(text);
-  }
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitTyped(); }
 });
-sendBtn.addEventListener("click", () => {
-  const text = input.value;
-  input.value = "";
-  sync();
-  send(text);
+sendBtn.addEventListener("click", submitTyped);
+clip.addEventListener("click", () => picker.click());
+picker.addEventListener("change", () => {
+  addPhotos(Array.from(picker.files || []));
+  picker.value = "";
 });
 
-document.querySelectorAll(".chip").forEach((chip) => {
-  chip.addEventListener("click", () => send(chip.textContent.trim()));
-});
+document.querySelectorAll(".chip").forEach((c) =>
+  c.addEventListener("click", () => exchange({ message: c.textContent.trim() }, c.textContent.trim())));
 
 el("restart").addEventListener("click", async () => {
   const res = await fetch("/api/reset", { method: "POST" });
-  threadId = (await res.json()).thread_id;
-  localStorage.setItem(KEY, threadId);
+  localStorage.setItem(KEY, (await res.json()).thread_id);
   location.reload();
 });
-
-/* ── The estimate form ─────────────────────────────────────── */
-
-let photos = [];   // [{id, url}] — ids from /api/upload, urls for the thumbnails
-
-function openForm(spec) {
-  closeForm();
-  formOpen = true;
-
-  const scrim = document.createElement("div");
-  scrim.className = "scrim";
-  scrim.id = "scrim";
-
-  const sheet = document.createElement("section");
-  sheet.className = "sheet";
-  sheet.id = "sheet";
-  sheet.setAttribute("role", "dialog");
-  sheet.setAttribute("aria-modal", "true");
-  sheet.setAttribute("aria-label", spec.title || "Estimate");
-
-  const head = document.createElement("header");
-  const h3 = document.createElement("h3");
-  h3.textContent = spec.title || "Get an estimate";
-  const intro = document.createElement("p");
-  intro.textContent = spec.intro || "";
-  const close = document.createElement("button");
-  close.className = "close";
-  close.type = "button";
-  close.setAttribute("aria-label", "Close");
-  close.textContent = "×";
-  head.append(h3, intro, close);
-
-  const scrollArea = document.createElement("div");
-  scrollArea.className = "scroll";
-
-  const values = spec.values || {};
-  const errors = spec.errors || {};
-
-  (spec.fields || []).forEach((f) => {
-    const grp = document.createElement("div");
-    grp.className = "grp" + (errors[f.name] ? " bad" : "");
-
-    const id = "f_" + f.name;
-    const label = document.createElement("label");
-    label.setAttribute("for", id);
-    label.textContent = f.label;
-    if (f.required) {
-      const star = document.createElement("span");
-      star.className = "req";
-      star.textContent = " *";
-      label.appendChild(star);
-    }
-    grp.appendChild(label);
-
-    let control;
-    if (f.kind === "select") {
-      control = document.createElement("select");
-      const blank = document.createElement("option");
-      blank.value = "";
-      blank.textContent = "Choose one…";
-      control.appendChild(blank);
-      (f.options || []).forEach((opt) => {
-        const o = document.createElement("option");
-        o.value = opt;
-        o.textContent = opt;
-        control.appendChild(o);
-      });
-    } else if (f.kind === "textarea") {
-      control = document.createElement("textarea");
-    } else {
-      control = document.createElement("input");
-      control.type = f.kind === "tel" ? "tel"
-                   : f.kind === "email" ? "email"
-                   : f.kind === "date" ? "date" : "text";
-      if (f.kind === "date") control.min = new Date().toISOString().slice(0, 10);
-      if (f.kind === "tel") control.inputMode = "tel";
-    }
-    control.id = id;
-    control.name = f.name;
-    control.dataset.field = f.name;
-    if (f.placeholder) control.placeholder = f.placeholder;
-    if (values[f.name]) control.value = values[f.name];
-    grp.appendChild(control);
-
-    if (errors[f.name]) {
-      const err = document.createElement("div");
-      err.className = "err";
-      err.textContent = errors[f.name];
-      grp.appendChild(err);
-    } else if (f.help) {
-      const hint = document.createElement("div");
-      hint.className = "hint";
-      hint.textContent = f.help;
-      grp.appendChild(hint);
-    }
-    scrollArea.appendChild(grp);
-  });
-
-  // Photos
-  const photoGrp = document.createElement("div");
-  photoGrp.className = "grp";
-  const photoLabel = document.createElement("label");
-  photoLabel.textContent = (spec.photos && spec.photos.label) || "Photos";
-  const drop = document.createElement("label");
-  drop.className = "drop";
-  drop.innerHTML =
-    "<strong>Add photos</strong><span>" +
-    ((spec.photos && spec.photos.help) || "") + "</span>";
-  const picker = document.createElement("input");
-  picker.type = "file";
-  picker.accept = "image/*";
-  picker.multiple = true;
-  drop.appendChild(picker);
-  const shots = document.createElement("div");
-  shots.className = "shots";
-  shots.id = "shots";
-  photoGrp.append(photoLabel, drop, shots);
-  scrollArea.appendChild(photoGrp);
-
-  picker.addEventListener("change", () => {
-    addPhotos(Array.from(picker.files || []));
-    picker.value = "";
-  });
-  ["dragover", "dragenter"].forEach((e) =>
-    drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.add("over"); }));
-  ["dragleave", "drop"].forEach((e) =>
-    drop.addEventListener(e, () => drop.classList.remove("over")));
-  drop.addEventListener("drop", (ev) => {
-    ev.preventDefault();
-    addPhotos(Array.from(ev.dataTransfer.files || []).filter((f) => f.type.startsWith("image/")));
-  });
-
-  const foot = document.createElement("footer");
-  const note = document.createElement("div");
-  note.className = "note";
-  note.textContent = "A manager reads this and calls you — usually the same day.";
-  const submit = document.createElement("button");
-  submit.className = "primary";
-  submit.type = "button";
-  submit.textContent = "Send to the office";
-  foot.append(note, submit);
-
-  sheet.append(head, scrollArea, foot);
-  document.body.append(scrim, sheet);
-  renderShots();
-
-  const first = scrollArea.querySelector("input, select, textarea");
-  if (first && window.matchMedia("(min-width: 640px)").matches) first.focus();
-
-  close.addEventListener("click", cancelForm);
-  scrim.addEventListener("click", cancelForm);
-  document.addEventListener("keydown", escClose);
-
-  submit.addEventListener("click", async () => {
-    if (busy) return;
-    busy = true;
-    submit.disabled = true;
-    submit.textContent = "Sending…";
-
-    const collected = {};
-    scrollArea.querySelectorAll("[data-field]").forEach((c) => {
-      collected[c.dataset.field] = c.value;
-    });
-
-    try {
-      const evt = await post({
-        form: { values: collected, photo_ids: photos.filter((p) => p.id).map((p) => p.id) },
-      });
-      // A form event coming back means it was rejected — re-render it with the
-      // errors and everything they already typed still in place.
-      if (evt.event === "form" && evt.form) {
-        busy = false;
-        openForm(evt.form);
-        return;
-      }
-      closeForm();
-      handle(evt);
-    } catch (err) {
-      submit.disabled = false;
-      submit.textContent = "Send to the office";
-      const bad = document.createElement("div");
-      bad.className = "formerr";
-      bad.textContent = "That didn't go through. Try again, or call (323) 645-2636.";
-      foot.before(bad);
-    } finally {
-      busy = false;
-    }
-  });
-}
-
-function escClose(e) { if (e.key === "Escape") cancelForm(); }
-
-function closeForm() {
-  formOpen = false;
-  document.removeEventListener("keydown", escClose);
-  const sheet = el("sheet"), scrim = el("scrim");
-  if (sheet) sheet.remove();
-  if (scrim) scrim.remove();
-}
-
-async function cancelForm() {
-  if (busy) return;
-  closeForm();
-  photos = [];
-  busy = true;
-  thinking(true);
-  try {
-    handle(await post({ cancelled: true }));
-  } finally {
-    thinking(false);
-    busy = false;
-  }
-}
 
 /* ── Photos ────────────────────────────────────────────────── */
 
 function renderShots() {
-  const box = el("shots");
-  if (!box) return;
-  box.textContent = "";
-  photos.forEach((photo, index) => {
+  photos.forEach((photo, i) => {
     const cell = document.createElement("div");
     cell.className = "shot" + (photo.id ? "" : " pending");
     const img = document.createElement("img");
-    img.src = photo.url;
-    img.alt = "";
+    img.src = photo.url; img.alt = "";
     cell.appendChild(img);
     if (photo.id) {
       const x = document.createElement("button");
-      x.type = "button";
+      x.type = "button"; x.textContent = "×";
       x.setAttribute("aria-label", "Remove photo");
-      x.textContent = "×";
       x.addEventListener("click", () => {
         URL.revokeObjectURL(photo.url);
-        photos.splice(index, 1);
-        renderShots();
+        photos.splice(i, 1);
+        setComposer(asking);
       });
       cell.appendChild(x);
     }
-    box.appendChild(cell);
+    assist.appendChild(cell);
   });
 }
 
 async function addPhotos(files) {
   for (const file of files) {
-    // Shown immediately, greyed, so a slow upload on cell data still feels
+    // Shown immediately and greyed, so a slow upload on cell data still feels
     // like something happened when they tapped.
     const entry = { id: null, url: URL.createObjectURL(file) };
     photos.push(entry);
-    renderShots();
+    setComposer(asking);
 
     const body = new FormData();
     body.append("thread_id", threadId);
     body.append("file", file);
-
     try {
       const res = await fetch("/api/upload", { method: "POST", body });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
+      if (!res.ok) throw new Error(data.error || "That upload didn't go through.");
       entry.id = data.id;
+      setComposer(asking);
     } catch (err) {
       photos = photos.filter((p) => p !== entry);
       URL.revokeObjectURL(entry.url);
-      const box = el("shots");
-      if (box) {
-        const bad = document.createElement("div");
-        bad.className = "err";
-        bad.style.flexBasis = "100%";
-        bad.textContent = err.message;
-        box.appendChild(bad);
-        setTimeout(() => bad.remove(), 5000);
-      }
+      setComposer(asking);
+      const warn = document.createElement("div");
+      warn.className = "warn";
+      warn.textContent = err.message;
+      assist.appendChild(warn);
+      setTimeout(() => warn.remove(), 5000);
     }
-    renderShots();
   }
 }
 
 /* ── Boot ──────────────────────────────────────────────────── */
-
 sync();
-input.focus({ preventScroll: true });
+if (window.matchMedia("(min-width: 640px)").matches) input.focus({ preventScroll: true });
 </script>
 </body>
 </html>

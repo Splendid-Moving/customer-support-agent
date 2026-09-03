@@ -12,9 +12,10 @@ from agent import graph as graph_module
 from agent.nodes import refuse, router
 
 
-def test_both_lead_types_share_the_one_form_node():
-    assert router.pick_lane({"intent": "estimate"}) == "collect_lead"
-    assert router.pick_lane({"intent": "long_distance"}) == "collect_lead"
+def test_both_lead_types_share_the_one_lane():
+    """prefill first, so the interview can skip what they already told us."""
+    assert router.pick_lane({"intent": "estimate"}) == "prefill"
+    assert router.pick_lane({"intent": "long_distance"}) == "prefill"
 
 
 def test_the_other_lanes_map_to_themselves():
@@ -43,9 +44,11 @@ def test_the_guard_is_the_only_way_in():
 def test_nothing_reaches_a_lane_without_passing_the_guard():
     """Every lane's only inbound edge comes from the router or its own loop."""
     edges = _edges()
-    for lane in ("knowledge", "collect_lead", "handoff"):
+    for lane in ("knowledge", "prefill", "handoff"):
         inbound = {s for s, t in edges if t == lane}
         assert inbound <= {"router", "answer_check"}, f"{lane} reachable from {inbound}"
+    # collect_lead is one step further in, behind prefill.
+    assert {s for s, t in edges if t == "collect_lead"} == {"prefill"}
 
 
 def test_the_email_is_not_reachable_from_the_router():
@@ -54,8 +57,7 @@ def test_the_email_is_not_reachable_from_the_router():
     router edge ever points at it directly, no message can be trusted again.
     """
     inbound = {s for s, t in _edges() if t == "submit_lead"}
-    assert "router" not in inbound
-    assert "guard" not in inbound
+    assert inbound == {"collect_lead"}
 
 
 def test_the_rewrite_loop_can_exit():

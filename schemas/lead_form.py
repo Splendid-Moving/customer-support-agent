@@ -32,20 +32,42 @@ LeadType = Literal["estimate", "long_distance"]
 
 @dataclass(frozen=True)
 class Field_:
-    """One question on the form."""
+    """
+    One thing we need from the customer.
+
+    `label` is how it is titled in the email a manager reads. `ask` is how the
+    agent asks for it in the chat — a different job, and the reason both exist.
+    "Moving from" is a good column heading and a terrible thing to say out loud.
+
+    `ask` may contain `{name}`, filled in with what they have already told us, so
+    the second question can use their first name.
+    """
 
     name: str
     label: str
+    ask: str = ""
     kind: Literal["text", "tel", "email", "date", "select", "textarea"] = "text"
     required: bool = False
     placeholder: str = ""
     help: str = ""
     options: tuple[str, ...] = ()
 
+    #: Can be prefilled from what the customer already said in the conversation.
+    #: Only ever set on fields where a wrong guess is obvious to the customer and
+    #: harmless to the office. Never on name, phone or email — a mis-heard phone
+    #: number is a lead nobody can call back.
+    extractable: bool = False
+
     def to_json(self) -> dict[str, Any]:
         out = asdict(self)
         out["options"] = list(self.options)
         return out
+
+    def question(self, answers: dict[str, str]) -> str:
+        first = (answers.get("name") or "").split()
+        return (self.ask or f"What's your {self.label.lower()}?").format(
+            name=first[0] if first else "there"
+        )
 
 
 HOME_SIZES = (
@@ -69,66 +91,92 @@ FLEXIBILITY = (
 # ── Shared fields ──────────────────────────────────────────────────────────────
 
 _CONTACT = [
-    Field_("name", "Your name", required=True, placeholder="Jordan Lee"),
-    Field_("phone", "Phone", kind="tel", required=True, placeholder="(323) 555-0142",
-           help="How a manager will reach you."),
-    Field_("email", "Email", kind="email", required=True, placeholder="you@example.com"),
+    Field_("name", "Your name",
+           ask="Happy to help with that. First off — what's your name?",
+           required=True, placeholder="Jordan Lee"),
+    Field_("phone", "Phone", kind="tel",
+           ask="Thanks {name}. What's the best number for a manager to reach you on?",
+           required=True, placeholder="(323) 555-0142"),
+    Field_("email", "Email", kind="email",
+           ask="And an email address?",
+           required=True, placeholder="you@example.com"),
 ]
+
+_FROM = Field_("from_address", "Moving from",
+               ask="Where are we moving you from? Street and city is plenty.",
+               required=True, placeholder="Street, city", extractable=True)
 
 _MOVE = [
     Field_("move_date", "Move date", kind="date",
-           help="Leave blank if you haven't settled on one."),
-    Field_("home_size", "Size of the place", kind="select", required=True,
-           options=HOME_SIZES),
+           ask="What date are you looking at? If it's not settled yet, just say so.",
+           help="Or tell me you're not sure.", extractable=True),
+    Field_("home_size", "Size of the place", kind="select",
+           ask="How big is the place we're moving?",
+           required=True, options=HOME_SIZES, extractable=True),
 ]
 
 _EXTRAS = [
     Field_("access", "Stairs or elevator?", kind="text",
-           placeholder="3rd floor walk-up, elevator at the new place",
-           help="Access is usually the biggest factor in how long a move takes."),
+           ask="Any stairs or elevators involved, at either end? That's usually the "
+               "biggest factor in how long a move takes.",
+           placeholder="3rd floor walk-up, elevator at the new place"),
     Field_("notes", "Anything else we should know?", kind="textarea",
-           placeholder="Piano, a safe, packing help needed, parking is tight..."),
+           ask="Last one — anything else I should pass on? Piano, a safe, packing "
+               "help, tight parking, that sort of thing.",
+           placeholder="Anything at all"),
 ]
 
 
 FORMS: dict[str, dict[str, Any]] = {
     "estimate": {
         "title": "Get an estimate",
-        "intro": (
-            "Fill this in and a manager will put together a real estimate and get "
-            "back to you. Photos help a lot — the more we can see, the closer the "
-            "number lands."
+        "opening": (
+            "Happy to get that sorted. Let me grab a few details and a manager "
+            "will put together a real estimate for you."
         ),
         "fields": [
             *_CONTACT,
-            Field_("from_address", "Moving from", required=True,
-                   placeholder="Street, city"),
-            Field_("to_address", "Moving to", required=True,
-                   placeholder="Street, city"),
+            _FROM,
+            Field_("to_address", "Moving to",
+                   ask="And where are we taking it?",
+                   required=True, placeholder="Street, city", extractable=True),
             *_MOVE,
             *_EXTRAS,
         ],
     },
     "long_distance": {
         "title": "Long-distance move",
-        "intro": (
-            "Long-distance moves aren't billed hourly like our local jobs, so a "
-            "manager prices each one individually. Give us the details and they'll "
-            "come back to you directly."
+        "opening": (
+            "Out-of-state moves aren't billed hourly like our local jobs — a "
+            "manager prices each one individually. Let me take a few details and "
+            "they'll come straight back to you."
         ),
         "fields": [
             *_CONTACT,
-            Field_("from_address", "Moving from", required=True,
-                   placeholder="Street, city"),
-            Field_("to_address", "Moving to", required=True,
-                   placeholder="City and state",
-                   help="Where the move is going — city and state is enough."),
+            _FROM,
+            Field_("to_address", "Moving to",
+                   ask="And where are you heading? City and state is enough.",
+                   required=True, placeholder="City and state", extractable=True),
             *_MOVE,
             Field_("flexibility", "How firm is that date?", kind="select",
-                   options=FLEXIBILITY),
+                   ask="How firm is that date?", options=FLEXIBILITY),
             *_EXTRAS,
         ],
     },
+}
+
+#: The photo step. Not a Field_ because it is not typed and not validated — it is
+#: its own kind of turn, and it is the single most valuable thing on the form:
+#: a manager quoting from photos is quoting, a manager quoting from "2 bedrooms"
+#: is guessing.
+PHOTO_STEP = {
+    "name": "photos",
+    "kind": "photos",
+    "ask": (
+        "Last thing, and it's the one that makes the biggest difference — can you "
+        "send a few photos of what's moving? A shot of each room is plenty. "
+        "Skip it if now's not a good time."
+    ),
 }
 
 
@@ -138,15 +186,9 @@ def spec(lead_type: str) -> dict[str, Any]:
     return {
         "lead_type": lead_type if lead_type in FORMS else "estimate",
         "title": form["title"],
-        "intro": form["intro"],
+        "opening": form["opening"],
         "fields": [f.to_json() for f in form["fields"]],
-        "photos": {
-            "label": "Photos of what's moving",
-            "help": (
-                "Optional, but it's the difference between a rough guess and a "
-                "real estimate. A shot of each room is plenty."
-            ),
-        },
+        "photo_step": dict(PHOTO_STEP),
     }
 
 
@@ -181,42 +223,71 @@ def normalize_phone(value: str) -> str:
     return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
 
 
+#: Ways a customer says "I don't know yet" to the date question. Treated as a
+#: blank answer rather than an error — a manager would rather hear "not sure"
+#: than watch someone invent a date to get past the question.
+UNDECIDED = {
+    "not sure", "no", "nope", "unsure", "dont know", "don't know", "no idea",
+    "flexible", "not yet", "tbd", "havent decided", "haven't decided", "skip",
+    "not settled", "undecided", "idk", "n/a", "na",
+}
+
+
+def is_undecided(value: str) -> bool:
+    cleaned = re.sub(r"[^a-z' ]", "", str(value).lower()).strip()
+    return cleaned in UNDECIDED
+
+
+def validate_one(field: Field_, value: Any) -> str | None:
+    """
+    Check one answer. Returns a message to say back, or None if it's fine.
+
+    Phrased the way a person would say it, because the agent repeats it verbatim
+    into the conversation — "That doesn't look like a full phone number, can you
+    give me all ten digits?" reads like a colleague; "Invalid input" does not.
+    """
+    value = value.strip() if isinstance(value, str) else value
+    text = str(value or "")
+
+    if not text:
+        if field.required:
+            return "I do need that one — what should I put down?"
+        return None
+
+    if field.kind == "email" and not _EMAIL.match(text):
+        return "That doesn't look quite like an email address — mind checking it?"
+
+    if field.kind == "tel" and len(_digits(text)) not in (10, 11):
+        return "That doesn't look like a full number — can I get all ten digits?"
+
+    if field.kind == "date":
+        try:
+            parsed = datetime.strptime(text, "%Y-%m-%d").date()
+        except ValueError:
+            return "I didn't catch that as a date — use the picker, or tell me you're not sure yet."
+        if parsed < date.today():
+            return "That date's already gone by — did you mean a later one?"
+
+    if field.kind == "select" and field.options and text not in field.options:
+        return "Pick whichever of those is closest."
+
+    return None
+
+
 def validate(lead_type: str, submitted: dict[str, Any]) -> dict[str, str]:
     """
-    Check a submission. Returns {field_name: message} — empty means it is good.
+    Check a whole submission at once. Returns {field_name: message}; empty is good.
 
-    Errors are phrased as a person would say them, because they are shown to the
-    customer verbatim under the field they belong to.
+    Still the authority even though the agent now collects one answer at a time:
+    `validate_one` guards the conversation, this guards what is about to be
+    emailed, and it runs over everything regardless of how it got there.
     """
     errors: dict[str, str] = {}
     values = {k: (v.strip() if isinstance(v, str) else v) for k, v in (submitted or {}).items()}
 
     for f in fields_for(lead_type):
-        value = values.get(f.name) or ""
-        if f.required and not value:
-            errors[f.name] = "We need this one."
-            continue
-        if not value:
-            continue
-
-        if f.kind == "email" and not _EMAIL.match(value):
-            errors[f.name] = "That doesn't look like an email address."
-
-        elif f.kind == "tel" and len(_digits(value)) not in (10, 11):
-            errors[f.name] = "That doesn't look like a full phone number."
-
-        elif f.kind == "date":
-            try:
-                parsed = datetime.strptime(value, "%Y-%m-%d").date()
-            except ValueError:
-                errors[f.name] = "Use the date picker, or leave it blank."
-            else:
-                if parsed < date.today():
-                    errors[f.name] = "That date has already passed."
-
-        elif f.kind == "select" and f.options and value not in f.options:
-            errors[f.name] = "Pick one of the options."
-
+        if message := validate_one(f, values.get(f.name, "")):
+            errors[f.name] = message
     return errors
 
 

@@ -41,21 +41,26 @@ def test_a_second_interrupt_in_the_same_node_still_reads_as_paused():
     graph = build_graph(checkpointer=InMemorySaver())
     cfg = {"configurable": {"thread_id": "wiring-test"}}
 
-    # Enter the form lane directly, skipping the model-backed guard and router.
+    # Enter the interview directly, skipping the model-backed guard, router and
+    # prefill — this test is about the pause, not about routing.
     graph.invoke({"intent": "estimate", "messages": []}, cfg, interrupt_before=["guard"])
-    graph.update_state(cfg, {"intent": "estimate"}, as_node="router")
+    graph.update_state(cfg, {"lead_type": "estimate", "lead": {}}, as_node="prefill")
     graph.invoke(None, cfg)
 
-    assert web._pending_interrupt(graph, cfg) is not None, "first interrupt not seen"
+    first = web._pending_interrupt(graph, cfg)
+    assert first is not None, "first question not seen"
+    assert first["field"]["name"] == "name"
 
-    # A submission that fails validation re-interrupts inside the same node.
-    graph.invoke(Command(resume={"values": {"name": "J"}, "photo_ids": []}), cfg)
+    # A blank answer to a required question re-asks inside the same node — a
+    # second interrupt, same invocation. This is the case that used to look
+    # "not paused" and silently restart the whole conversation.
+    graph.invoke(Command(resume={"answer": "  "}), cfg)
 
     snapshot = graph.get_state(cfg)
     pending = web._pending_interrupt(graph, cfg)
 
     assert pending is not None, "second interrupt reported as not paused"
-    assert pending["errors"], "the re-shown form carries no validation errors"
+    assert pending["field"]["name"] == "name", "moved on despite a blank answer"
     # The whole point: `next` is unreliable here, `tasks` is not.
     assert not snapshot.next, (
         "snapshot.next is populated after all — if LangGraph has changed this, "

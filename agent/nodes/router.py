@@ -133,7 +133,8 @@ def pick_lane(state: SupportState) -> str:
     where opening the form on someone who did not ask for it loses the job.
     """
     intent = state.get("intent", "knowledge")
-    # Both lead types share one node; only the form it shows differs.
+    # Both lead types share one lane; only the questions differ. prefill runs
+    # first so the interview can skip whatever they have already told us.
     if intent in ("estimate", "long_distance"):
-        return "collect_lead"
+        return "prefill"
     return intent if intent in ("knowledge", "handoff") else "knowledge"
