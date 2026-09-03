@@ -162,9 +162,24 @@ them to the customer.
 
 ## Deploying
 
-One Railway service.
+One Railway service, built by Railpack, which picks up `Procfile` and
+`.python-version` on its own.
 
-1. **Add a volume** and point `CHECKPOINT_DB` and `UPLOAD_DIR` at it
+**There is deliberately no `railway.json`.** Railway deprecated Config as Code,
+and services created after 2026-08-28 cannot opt in at all — a config file
+committed here would look authoritative and be silently ignored. These settings
+have to be set in the Railway dashboard by hand:
+
+| Setting | Value | Why |
+|---|---|---|
+| Volume mount path | `/data` | Added from the project canvas (⌘K → "volume"), **not** from service Settings |
+| Healthcheck Path | `/health` | Stops traffic being routed to a deploy that failed to boot |
+| Replicas | `1` | The checkpointer is SQLite on one volume and the rate limiter is in memory. Neither works across two instances. |
+| Start Command | (blank) | Railpack reads `Procfile`. Set it explicitly to `uvicorn app:app --host 0.0.0.0 --port $PORT` if you would rather not rely on that. |
+
+Then:
+
+1. **Add the volume first** and point `CHECKPOINT_DB` and `UPLOAD_DIR` inside it
    (`/data/support_threads.sqlite` and `/data/uploads`). Without a volume, every
    deploy throws away whatever forms people are midway through filling in — and
    they find out by clicking Submit.
@@ -172,10 +187,7 @@ One Railway service.
    verified in Resend or every send fails with a 403.
 3. Leave `DRY_RUN=true` for the first deploy. Send yourself a test lead, read it,
    *then* set it to false.
-4. Link to it from the website.
-
-`numReplicas` stays at 1. The checkpointer is SQLite on one volume and the rate
-limiter is in memory; neither works across two instances.
+4. Add the custom domain, and link to it from the website.
 
 ---
 
