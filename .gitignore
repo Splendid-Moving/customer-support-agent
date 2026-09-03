@@ -1,0 +1,11 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.langgraph_api/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.uploads/
+.DS_Store
