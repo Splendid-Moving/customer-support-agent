@@ -101,6 +101,7 @@ Entry points:
 | `server.py` | `python server.py` — local, on localhost:8080 |
 | `app.py` | What Railway runs. Also where the resume protocol lives. |
 | `langgraph.json` | For `langgraph dev`, if you want the LangGraph Studio view |
+| `.python-version` | Pins Python 3.12 for Railway's builder. The pinned dependency versions are not all built for 3.13. |
 
 ---
 
