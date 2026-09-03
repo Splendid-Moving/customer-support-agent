@@ -7,9 +7,14 @@
 
 ## Who we are
 
-We're a moving company based in Los Angeles. We're fully licensed and insured,
-and we can provide a certificate of insurance on request — buildings often ask
-for one before move day.
+We're a moving company based in Los Angeles. We're fully licensed and carry
+business liability insurance, and we can provide a certificate of insurance on
+request — buildings often ask for one before move day.
+
+That's coverage on us as a company, and it is a different thing from the
+coverage on a customer's belongings during the move. For what happens if
+something of theirs is damaged, use the released-value protection answer in the
+policies — never say a customer's items are "fully insured".
 
 We're rated 4.9 stars on both Google and Yelp.
 
