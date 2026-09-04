@@ -316,6 +316,22 @@ def clean(lead_type: str, submitted: dict[str, Any]) -> dict[str, str]:
     return out
 
 
+def summary_for(lead_type: str, answers: dict[str, Any]) -> list[dict[str, str]]:
+    """
+    The answers as label/value pairs, in the order they were asked.
+
+    Read back to the customer before anything is sent. Skipped fields are left
+    out rather than shown empty — a list with four blanks in it looks like
+    something went wrong, when in fact they just had nothing to add.
+    """
+    rows = []
+    for f in fields_for(lead_type):
+        value = str(answers.get(f.name) or "").strip()
+        if value:
+            rows.append({"label": f.label, "value": value})
+    return rows
+
+
 def label_for(lead_type: str, name: str) -> str:
     """Human label for a field name, for laying out the email."""
     for f in fields_for(lead_type):

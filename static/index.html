@@ -176,6 +176,39 @@ header.bar {
   font-size: .96rem;
 }
 
+/* The read-back before anything is sent. Given a surface of its own —
+   it is the one thing on the page the customer is asked to check rather
+   than read, and it should not look like another message. */
+.recap {
+  max-width: 60ch;
+  margin-bottom: 1.6rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.recap dl { margin: 0; display: grid; grid-template-columns: minmax(7.5rem, auto) 1fr; }
+.recap dt, .recap dd {
+  margin: 0;
+  padding: .6rem .95rem;
+  border-bottom: 1px solid var(--line);
+  font-size: .92rem;
+}
+.recap dt { color: var(--muted); font-size: .82rem; }
+.recap dd { color: var(--ink); font-weight: 500; overflow-wrap: anywhere; }
+.recap dl > :nth-last-child(-n+2) { border-bottom: 0; }
+.recap .pics {
+  padding: .6rem .95rem;
+  border-top: 1px solid var(--line);
+  font-size: .85rem;
+  color: var(--muted);
+}
+@media (max-width: 480px) {
+  .recap dl { grid-template-columns: 1fr; }
+  .recap dt { padding-bottom: 0; border-bottom: 0; }
+  .recap dd { padding-top: .1rem; }
+}
+
 /* The caret that follows the streaming text. */
 .caret {
   display: inline-block;
@@ -505,8 +538,36 @@ function dropCaret(row) { const c = row && row.querySelector(".caret"); if (c) c
 function openQuestion(ask) {
   if (ask.opening) bubble("them", ask.opening);
   bubble("them", ask.message);
+  if (ask.type === "confirm") recap(ask);
   progress(ask.step, ask.total);
   asking = ask;
+}
+
+/** The answers laid out to be checked, not read. */
+function recap(ask) {
+  const card = document.createElement("div");
+  card.className = "recap reveal";
+
+  const dl = document.createElement("dl");
+  (ask.summary || []).forEach((row) => {
+    const dt = document.createElement("dt");
+    dt.textContent = row.label;
+    const dd = document.createElement("dd");
+    dd.textContent = row.value;      // typed by the customer — never innerHTML
+    dl.append(dt, dd);
+  });
+  card.appendChild(dl);
+
+  if (ask.photo_count) {
+    const pics = document.createElement("div");
+    pics.className = "pics";
+    pics.textContent =
+      ask.photo_count === 1 ? "1 photo attached" : ask.photo_count + " photos attached";
+    card.appendChild(pics);
+  }
+
+  thread.appendChild(card);
+  scroll();
 }
 
 /**
@@ -548,6 +609,14 @@ function setComposer(ask) {
     });
     assist.appendChild(day);
     assist.appendChild(button("Not sure yet", () => answer({ skip: true }, "Not sure yet"), true));
+  }
+
+  if (kind === "confirm") {
+    assist.appendChild(button("Send it over", () => answer({ confirmed: true }, "Send it over")));
+    assist.appendChild(button("Start over", () => answer({ restart: true }, "Start over"), true));
+    input.placeholder = "Or tell me what to change…";
+    sync();
+    return;
   }
 
   if (kind === "photos") {
@@ -604,7 +673,8 @@ function submitTyped() {
   sync();
   // While a question is open, typing IS the answer — same protocol, so the
   // server never mistakes it for a new conversation.
-  if (asking) answer({ answer: text }, text);
+  if (asking && asking.type === "confirm") answer({ restart: true }, text);
+  else if (asking) answer({ answer: text }, text);
   else exchange({ message: text }, text);
 }
 

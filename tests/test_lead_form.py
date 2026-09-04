@@ -148,3 +148,34 @@ def test_every_field_has_something_to_say():
     for lead_type in ("estimate", "long_distance"):
         for f in lead_form.fields_for(lead_type):
             assert f.ask.strip(), f"{lead_type}/{f.name} has no question written"
+
+
+# ── The read-back before anything is sent ──────────────────────────────────────
+
+def test_the_summary_reads_back_in_the_order_it_was_asked():
+    rows = lead_form.summary_for("estimate", {**GOOD, "notes": "one piano"})
+    labels = [r["label"] for r in rows]
+    assert labels[0] == lead_form.fields_for("estimate")[0].label
+    assert {"label": "Anything else we should know?", "value": "one piano"} in rows
+
+
+def test_skipped_answers_are_left_out_of_the_read_back():
+    """Four blank rows look like something broke, not like nothing was added."""
+    rows = lead_form.summary_for("estimate", GOOD)
+    assert all(r["value"] for r in rows)
+    assert "Anything else we should know?" not in [r["label"] for r in rows]
+
+
+def test_the_read_back_shows_what_the_office_will_actually_see():
+    """
+    It reads back the CLEANED answers, not the raw ones — so the phone number
+    the customer checks is the reformatted one a manager will dial.
+    """
+    cleaned = lead_form.clean("estimate", {**GOOD, "phone": " 3236452636 "})
+    rows = {r["label"]: r["value"] for r in lead_form.summary_for("estimate", cleaned)}
+    assert rows["Phone"] == "(323) 645-2636"
+
+
+def test_the_read_back_is_json_serialisable():
+    import json
+    json.dumps(lead_form.summary_for("long_distance", GOOD))
