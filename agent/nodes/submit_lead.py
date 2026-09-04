@@ -33,6 +33,7 @@ somebody else.
 """
 
 import logging
+import re
 
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
@@ -48,8 +49,23 @@ def _thread_id(config: RunnableConfig) -> str:
     return (config or {}).get("configurable", {}).get("thread_id", "")
 
 
+#: Letters, apostrophes and hyphens only. Whatever someone typed into "what's
+#: your name?" is echoed back in the confirmation, and that reply becomes an
+#: AIMessage in the history that later model calls read. It is the one path by
+#: which text from the interview — which the guard never screened, because the
+#: guard does not run while the graph is paused — reaches a prompt. One short,
+#: alphabetic word cannot carry an instruction.
+_NAMEISH = re.compile(r"[^\w'’\-]", re.UNICODE)
+
+
+def _first_name(raw: str) -> str:
+    if not raw:
+        return ""
+    return _NAMEISH.sub("", raw.split()[0])[:24]
+
+
 def _confirmation(lead: dict, photo_count: int) -> str:
-    name = (lead.get("name") or "").split()[0] if lead.get("name") else ""
+    name = _first_name(lead.get("name") or "")
     opener = f"Got it, {name}." if name else "Got it."
     photos = (
         f" Your {photo_count} photos came through too."

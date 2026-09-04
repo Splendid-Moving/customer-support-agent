@@ -95,7 +95,7 @@ what makes this safe to leave running on a public URL.
 | `services/` | The outside world — the knowledge loader, Resend, photo storage. Nothing here knows the agent exists. |
 | `static/index.html` | The chat page. One file, no build step. |
 | `scripts/import_kb.py` | Turns the KB spreadsheet into the markdown the agent reads. |
-| `tests/` | 145 checks that run in under a second, with no API key and no network. |
+| `tests/` | 149 checks that run in under a second, with no API key and no network. |
 
 Entry points:
 
@@ -127,7 +127,7 @@ wording change puts a real lead in the office inbox, and it looks exactly like a
 customer's.
 
 ```bash
-pytest                    # 145 checks, no API key needed
+pytest                    # 149 checks, no API key needed
 ```
 
 ---
@@ -222,6 +222,17 @@ fields. A model-run interview asks better questions and can loop forever, and
 whatever it decides a field contains lands in an email a manager acts on. The one
 model call in that lane is `prefill`, which only fills fields the customer can
 see are wrong — never name, phone or email.
+
+**The guard does not run during the estimate interview.** While the graph is
+paused, a `Command(resume=...)` re-enters the paused node directly — the router
+and the guard are never called. That is safe only because nothing in
+`collect_lead` calls a model: answers go into `lead` and then into one email, and
+they never join `messages`, so there is no prompt for them to reach. The two
+things that DO need enforcing there are enforced separately: request size, in
+`app.oversized` and the body-size middleware, and the customer's first name,
+which is stripped to one alphabetic word before being echoed back — that reply
+becomes an `AIMessage`, and it is the only path from the interview into the
+history a later model call reads.
 
 **Refusals are fixed strings.** Asking the model to write a polite refusal hands
 the attacker their text in the model's context, which is the thing being defended

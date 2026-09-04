@@ -74,3 +74,7 @@ Yes, the team foreman will call or text you before arriving.
 ## Do I need to empty out my drawers before the move?
 
 Yes, we strongly recommend it - especially for large or heavy furniture pieces, and if stairs are involved.
+
+## Can you dispose of unwanted/trash items?
+
+Our movers can help you leave your unwanted furniture by your curbside. Alternatively, they can take it to a dumpster, which will be done at an additional cost. Confirm exact fees with the office. 

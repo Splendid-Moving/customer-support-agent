@@ -49,6 +49,26 @@ STATIC = Path(__file__).parent / "static"
 
 app = FastAPI(title="Splendid Moving — chat")
 
+
+#: Generous ceiling on any request body. The guard enforces MAX_MESSAGE_CHARS on
+#: chat messages, but the guard does not run while the estimate interview is
+#: paused — a Command(resume=...) re-enters the paused node directly. So an
+#: answer to "what's your name?" had no size limit at all, and a huge one would
+#: be written into the checkpoint and re-serialised on every step after it.
+#: Checked from Content-Length so an oversized body is refused before it is read.
+MAX_BODY_BYTES = 256 * 1024
+
+
+@app.middleware("http")
+async def cap_body_size(request: Request, call_next):
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_BODY_BYTES:
+        # Photos have their own, much larger allowance on /api/upload.
+        if not request.url.path.startswith("/api/upload"):
+            return JSONResponse({"error": "That's too long for me — shorten it a bit?"},
+                                status_code=413)
+    return await call_next(request)
+
 # Before the graph is built, so a bad LangSmith key is the first thing in the log
 # rather than a silently empty project.
 tracing.configure()
@@ -159,6 +179,25 @@ def _pending_interrupt(graph, cfg: dict):
     return None
 
 
+def oversized(turn: Turn) -> bool:
+    """
+    True if anything in this turn is longer than a person would ever type.
+
+    Belt and braces behind the middleware: Content-Length is absent on chunked
+    requests, and this is the check that decides whether the text reaches graph
+    state — which is the part that actually costs something, because state is
+    rewritten to disk on every step for the rest of the conversation.
+    """
+    if len(turn.message) > config.MAX_MESSAGE_CHARS:
+        return True
+    for value in (turn.reply or {}).values():
+        if isinstance(value, str) and len(value) > config.MAX_MESSAGE_CHARS:
+            return True
+        if isinstance(value, list) and len(value) > config.MAX_UPLOADS_PER_THREAD:
+            return True
+    return False
+
+
 def _graph_input(graph, cfg: dict, turn: Turn):
     """
     Translate a browser request into the right kind of graph input.
@@ -253,6 +292,12 @@ async def chat(request: Request, turn: Turn):
     if _rate_limited(request):
         return JSONResponse(
             {"error": "Slow down a moment and try again."}, status_code=429
+        )
+
+    if oversized(turn):
+        return JSONResponse(
+            {"error": "That's a lot in one go — could you shorten it?"},
+            status_code=413,
         )
 
     thread_id = turn.thread_id or str(uuid.uuid4())
