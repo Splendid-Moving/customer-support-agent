@@ -21,7 +21,7 @@ from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 
 #: Where the router can send a turn. Each is a lane with its own node.
-Intent = Literal["knowledge", "estimate", "long_distance", "handoff"]
+Intent = Literal["knowledge", "estimate", "long_distance", "question", "handoff"]
 
 #: Why the guard blocked a turn. "clean" means it did not.
 GuardVerdict = Literal[
@@ -33,7 +33,7 @@ GuardVerdict = Literal[
 ]
 
 #: Which form to show. Same node, different fields.
-LeadType = Literal["estimate", "long_distance"]
+LeadType = Literal["estimate", "long_distance", "question"]
 
 
 class SupportState(TypedDict, total=False):
@@ -65,6 +65,16 @@ class SupportState(TypedDict, total=False):
 
     #: True once the lead email has actually gone out. Guards against a second send.
     lead_submitted: bool
+
+    #: Name and contact details the customer has ALREADY given and read back in
+    #: this conversation, kept so a second lead does not ask for them again.
+    #:
+    #: This is the one place contact details are carried forward, and it is safe
+    #: for the reason model-extracted ones are not: every value in here was typed
+    #: into an answer box by the customer, validated, and shown back to them on
+    #: the confirmation screen before anything was sent. It is their own
+    #: correction, not our guess.
+    known_contact: dict[str, str]
 
     #: The knowledge lane's answer BEFORE answer_check has passed it. It is not
     #: appended to `messages` until it clears the check, so a draft that breaks

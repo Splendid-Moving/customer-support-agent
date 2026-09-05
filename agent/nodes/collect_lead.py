@@ -1,8 +1,12 @@
 """
 NODE: Collect lead
-PURPOSE: Ask for the estimate details one at a time, in the conversation.
+PURPOSE: Ask for the details one at a time, in the conversation.
 INPUT:   state.lead_type, state.lead (whatever prefill already worked out)
 OUTPUT:  {"lead": {...}, "photo_ids": [...]} then on to submit_lead
+
+Three forms come through here — two kinds of estimate and, since a customer was
+offered a callback the agent could not actually arrange, a question for the
+office. Same loop for all of them; the field list is the only difference.
 
 WHY ONE QUESTION AT A TIME
 --------------------------
@@ -50,16 +54,32 @@ CONFIRM_ASK = (
     "works straight from this, so it's worth catching anything that's off."
 )
 
+#: The read-back on a question is shorter because the form was. Three answers do
+#: not need to be introduced as though they were nine.
+CONFIRM_QUESTION = (
+    "Here's what I'm sending over — worth a quick look, since this is what "
+    "they'll be answering."
+)
+
 CANCEL_REPLY = (
     "No problem, I'll leave it there. If you change your mind just say so — or "
     f"the office is on {config.COMPANY_PHONE} any day from 6am."
 )
 
+
+def _confirm_ask(lead_type: str) -> str:
+    return CONFIRM_QUESTION if lead_type == "question" else CONFIRM_ASK
+
 #: An answer that is plainly a question rather than an answer. Someone mid-form
 #: who suddenly asks "wait, how much is 3 movers?" should not end up with that
 #: sentence recorded as their street address.
+#:
+#: Never on a textarea. Those are the boxes that ASK for something open — "what
+#: would you like me to have them answer?", "anything else I should pass on?" —
+#: and deflecting a question typed into one is deflecting the answer we asked
+#: for. It is also the whole content of a question lead.
 def _looks_like_a_question(text: str, field: lead_form.Field_) -> bool:
-    if field.kind in ("select", "date"):
+    if field.kind in ("select", "date", "textarea"):
         return False
     stripped = str(text).strip()
     return stripped.endswith("?") and len(stripped.split()) > 2
@@ -82,6 +102,7 @@ def _ask(payload: dict) -> dict:
 def collect_lead(state: SupportState) -> Command[Literal["submit_lead", "__end__"]]:
     lead_type = state.get("lead_type") or "estimate"
     spec = lead_form.spec(lead_type)
+    wants_photos = lead_form.wants_photos(lead_type)
     prefilled = dict(state.get("lead") or {})
 
     restarted = False
@@ -104,14 +125,31 @@ def collect_lead(state: SupportState) -> Command[Literal["submit_lead", "__end__
         opening = spec["opening"]
         if restarted:
             opening = "No problem — let's go through it again from the top."
-        elif answers:
+        elif answers.get("name") and spec["opening_again"]:
+            # Their contact details are already in hand from an earlier lead in
+            # this same conversation, so the opening must not offer to take them.
+            opening = spec["opening_again"]
+        elif answers and lead_type != "question":
+            # Not on a question: the only thing prefilled there is the question
+            # itself, and "I've got a few bits already" about the sentence they
+            # just typed reads as though we mean their contact details.
             opening += " I've got a few bits already, so this'll be quick."
 
-        pending = [f for f in lead_form.fields_for(lead_type) if not answers.get(f.name)]
-        total = len(pending) + 2  # + the photo step + the read-back
+        # Recomputed on every pass rather than once, because an either/or answer
+        # decides what is still to come: someone who asks to be phoned is never
+        # asked for an email address.
+        total = lead_form.steps_remaining(lead_type, answers) + int(wants_photos) + 1
         step = 0
 
-        for field in pending:
+        for field in lead_form.fields_for(lead_type):
+            if answers.get(field.name):
+                continue
+            # Checked HERE, not when the list was built. `contact_method` is
+            # answered part-way down this loop, and it is what decides whether
+            # the phone or the email question is the next one asked.
+            if not field.applies(answers):
+                continue
+
             step += 1
             question = field.question(answers)
             while True:
@@ -149,6 +187,16 @@ def collect_lead(state: SupportState) -> Command[Literal["submit_lead", "__end__
                 if field.kind == "date" and lead_form.is_undecided(value):
                     value = ""
 
+                # And "no" is a real answer to "anything else?". Recording it
+                # sends a manager a line that looks like information and isn't.
+                if field.kind == "textarea" and not field.required and lead_form.is_nothing(value):
+                    value = ""
+
+                # The options are buttons, but the message box never goes away.
+                # Someone who types "email" at a question offering "Email" has
+                # answered it.
+                value = lead_form.coerce_option(field, value)
+
                 if _looks_like_a_question(value, field):
                     question = (
                         "Good question — let me get these details over first and a "
@@ -167,25 +215,30 @@ def collect_lead(state: SupportState) -> Command[Literal["submit_lead", "__end__
         # Photos, second to last. They need the customer to go and do something,
         # and by this point they have already invested eight answers — asking
         # first loses everyone who hasn't got photos to hand.
-        step += 1
-        reply = _ask(
-            {
-                "type": "photos",
-                "lead_type": lead_type,
-                "message": lead_form.PHOTO_STEP["ask"],
-                "opening": opening if first else "",
-                "skippable": True,
-                "step": step,
-                "total": total,
-            }
-        )
-        first = False
-        if reply.get("cancelled"):
-            logger.info("Lead form: cancelled at photos")
-            return Command(update={"messages": [AIMessage(content=CANCEL_REPLY)]}, goto=END)
-        photo_ids = [str(p)[:32] for p in (reply.get("photo_ids") or [])][
-            : config.MAX_UPLOADS_PER_THREAD
-        ]
+        #
+        # Skipped entirely on a question, which has no move to photograph. A step
+        # whose only sensible answer is "skip" is a step that should not be there.
+        photo_ids: list[str] = []
+        if wants_photos:
+            step += 1
+            reply = _ask(
+                {
+                    "type": "photos",
+                    "lead_type": lead_type,
+                    "message": lead_form.PHOTO_STEP["ask"],
+                    "opening": opening if first else "",
+                    "skippable": True,
+                    "step": step,
+                    "total": total,
+                }
+            )
+            first = False
+            if reply.get("cancelled"):
+                logger.info("Lead form: cancelled at photos")
+                return Command(update={"messages": [AIMessage(content=CANCEL_REPLY)]}, goto=END)
+            photo_ids = [str(p)[:32] for p in (reply.get("photo_ids") or [])][
+                : config.MAX_UPLOADS_PER_THREAD
+            ]
 
         # The read-back. Nothing has left the building yet, and this is the last
         # moment it can be corrected — after this a person acts on it, and a
@@ -196,7 +249,7 @@ def collect_lead(state: SupportState) -> Command[Literal["submit_lead", "__end__
             {
                 "type": "confirm",
                 "lead_type": lead_type,
-                "message": CONFIRM_ASK,
+                "message": _confirm_ask(lead_type),
                 "summary": lead_form.summary_for(lead_type, cleaned),
                 "photo_count": len(photo_ids),
                 "step": step,

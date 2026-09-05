@@ -1,5 +1,14 @@
 """
-The estimate form: what it asks, and what counts as a valid answer.
+What the agent collects before it emails the office, and what counts as a valid
+answer.
+
+Three of them now. Two ask a manager to price a move — `estimate` and
+`long_distance`. The third, `question`, exists because of a real conversation:
+someone asked what we charge to haul away a fridge, the agent correctly said it
+did not know and offered to have the office get back to them, took their name and
+number — and then told them to call us, because taking a message was not
+something it could actually do. The offer was honest when it was made and a dead
+end one turn later.
 
 ONE definition, used three times — the browser renders the form from it, Python
 validates the submission against it, and the email to the office is laid out from
@@ -27,7 +36,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from typing import Any, Literal
 
-LeadType = Literal["estimate", "long_distance"]
+LeadType = Literal["estimate", "long_distance", "question"]
 
 
 @dataclass(frozen=True)
@@ -58,10 +67,27 @@ class Field_:
     #: number is a lead nobody can call back.
     extractable: bool = False
 
+    #: `(field_name, value)` — only ask this if that earlier answer came back
+    #: exactly that. It is data rather than a callable so the whole field can be
+    #: JSON-encoded into the interrupt payload and written to the checkpoint.
+    #:
+    #: One branch uses it: someone who says they would rather be phoned is asked
+    #: for a number and never for an email address. Asking for both is how a
+    #: two-question detour becomes a four-question form.
+    only_if: tuple[str, str] | None = None
+
     def to_json(self) -> dict[str, Any]:
         out = asdict(self)
         out["options"] = list(self.options)
+        out["only_if"] = list(self.only_if) if self.only_if else None
         return out
+
+    def applies(self, answers: dict[str, Any]) -> bool:
+        """Whether this field is part of the form given what has been answered."""
+        if not self.only_if:
+            return True
+        depends_on, value = self.only_if
+        return str(answers.get(depends_on) or "").strip() == value
 
     def question(self, answers: dict[str, str]) -> str:
         first = (answers.get("name") or "").split()
@@ -86,6 +112,10 @@ FLEXIBILITY = (
     "Within a couple of weeks",
     "Not decided yet",
 )
+
+#: How the office should come back to them. Two options, tapped not typed, and
+#: they decide which contact field is asked for next.
+CONTACT_METHODS = ("Phone", "Email")
 
 
 # ── Shared fields ──────────────────────────────────────────────────────────────
@@ -130,6 +160,41 @@ _EXTRAS = [
 ]
 
 
+# ── The question form ──────────────────────────────────────────────────────────
+# Shorter than the estimate on purpose. Nobody who asked one question expects to
+# be interviewed for it, and every field here past the third is a customer
+# deciding it was not that important after all.
+
+_QUESTION = [
+    Field_("question", "Their question", kind="textarea",
+           ask="So they answer the right thing — what would you like to know?",
+           required=True, placeholder="What you'd like to know",
+           extractable=True),
+    Field_("name", "Your name",
+           ask="And who am I sending this over for?",
+           required=True, placeholder="Jordan Lee"),
+    Field_("contact_method", "Get back to them by", kind="select",
+           ask="What's the best way for them to get back to you, {name} — phone or "
+               "email?",
+           required=True, options=CONTACT_METHODS),
+    Field_("phone", "Phone", kind="tel",
+           ask="What's the best number to reach you on?",
+           required=True, placeholder="(323) 555-0142",
+           only_if=("contact_method", "Phone")),
+    Field_("email", "Email", kind="email",
+           ask="What's the best email address for you?",
+           required=True, placeholder="you@example.com",
+           only_if=("contact_method", "Email")),
+    # The "anything else?" the office would ask on the phone. It is the last
+    # question rather than a throwaway line because a second question answered in
+    # the same callback is one fewer reason for anybody to call twice.
+    Field_("anything_else", "Also asked", kind="textarea",
+           ask="Anything else you wanted to ask while I've got you? If not, just "
+               "say no and I'll send this over.",
+           placeholder="Anything else at all"),
+]
+
+
 FORMS: dict[str, dict[str, Any]] = {
     "estimate": {
         "title": "Get an estimate",
@@ -166,6 +231,26 @@ FORMS: dict[str, dict[str, Any]] = {
             *_EXTRAS,
         ],
     },
+    "question": {
+        "title": "Question for the office",
+        "opening": (
+            "I'd rather get you a proper answer than guess at it. Let me take a "
+            "couple of details and someone from the office will come straight "
+            "back to you."
+        ),
+        # Used instead when this customer has already given us their details
+        # earlier in the conversation. Offering to "take a couple of details"
+        # off someone who handed them over two minutes ago is the same failure
+        # as asking for them twice.
+        "opening_again": (
+            "I'll send that one over as well. I've still got your details, so "
+            "there's nothing to fill in again."
+        ),
+        "fields": _QUESTION,
+        # No photos. They earn their place on a move a manager has to price;
+        # on a two-line question they are one more thing to say no to.
+        "photos": False,
+    },
 }
 
 #: The photo step. Not a Field_ because it is not typed and not validated — it is
@@ -190,13 +275,53 @@ def spec(lead_type: str) -> dict[str, Any]:
         "lead_type": lead_type if lead_type in FORMS else "estimate",
         "title": form["title"],
         "opening": form["opening"],
+        "opening_again": form.get("opening_again", ""),
         "fields": [f.to_json() for f in form["fields"]],
         "photo_step": dict(PHOTO_STEP),
+        "photos": wants_photos(lead_type),
     }
 
 
 def fields_for(lead_type: str) -> list[Field_]:
     return list((FORMS.get(lead_type) or FORMS["estimate"])["fields"])
+
+
+def wants_photos(lead_type: str) -> bool:
+    """Whether this form asks for photos at all. Every move does; a question doesn't."""
+    return bool((FORMS.get(lead_type) or FORMS["estimate"]).get("photos", True))
+
+
+def applicable_fields(lead_type: str, answers: dict[str, Any]) -> list[Field_]:
+    """The fields that are part of this form given what has been answered so far."""
+    return [f for f in fields_for(lead_type) if f.applies(answers)]
+
+
+def steps_remaining(lead_type: str, answers: dict[str, Any]) -> int:
+    """
+    How many questions are still to come, for the progress rail.
+
+    An either/or branch counts ONCE while it is still open. Someone who has not
+    yet said whether they want a call or an email will be asked for exactly one
+    of the two, so counting both would show a form one step longer than it is —
+    and a progress bar that jumps backwards is worse than no progress bar.
+    """
+    count = 0
+    open_branches: set[str] = set()
+
+    for f in fields_for(lead_type):
+        if answers.get(f.name):
+            continue
+        if not f.only_if:
+            count += 1
+            continue
+        depends_on, _ = f.only_if
+        if answers.get(depends_on):
+            # The branch is decided: this field is either in or out for real.
+            count += int(f.applies(answers))
+        elif depends_on not in open_branches:
+            open_branches.add(depends_on)
+            count += 1
+    return count
 
 
 # ── Validation ─────────────────────────────────────────────────────────────────
@@ -239,6 +364,55 @@ UNDECIDED = {
 def is_undecided(value: str) -> bool:
     cleaned = re.sub(r"[^a-z' ]", "", str(value).lower()).strip()
     return cleaned in UNDECIDED
+
+
+#: Ways of saying "nothing to add" to an open question. The last thing an
+#: optional box asks is "anything else?", and the honest answer is usually no —
+#: which is not a piece of information about the move. Emailing a manager a row
+#: reading "Anything else we should know? — no" is worse than emailing no row at
+#: all, because they read it looking for the point.
+NOTHING = {
+    "no", "nope", "nah", "no thanks", "no thank you", "nothing", "nothing else",
+    "none", "that's it", "thats it", "that's all", "thats all", "all good",
+    "im good", "i'm good", "no im good", "no i'm good", "nada", "n/a", "na",
+    "skip", "not really", "no not really", "dont think so", "don't think so",
+}
+
+
+def is_nothing(value: str) -> bool:
+    cleaned = re.sub(r"[^a-z' ]", "", str(value).lower()).strip()
+    return cleaned in NOTHING
+
+
+def coerce_option(field: Field_, value: str) -> str:
+    """
+    A typed answer to a multiple-choice question, matched to one of the options.
+
+    The buttons are there to be tapped, but the message box never goes away — so
+    someone will type "email" to a question offering "Email", and being told to
+    "pick whichever of those is closest" when they just did is the kind of small
+    stupidity that ends a conversation.
+
+    Only ever returns an option or the input unchanged, and only when the match
+    is unambiguous. Two candidates means we genuinely do not know which they
+    meant, and asking again is the right answer.
+    """
+    if field.kind != "select" or not field.options:
+        return value
+
+    text = str(value or "").strip().lower()
+    if not text:
+        return value
+
+    for option in field.options:
+        if text == option.lower():
+            return option
+
+    near = [
+        option for option in field.options
+        if option.lower().startswith(text) or option.lower() in text
+    ]
+    return near[0] if len(near) == 1 else value
 
 
 def validate_one(field: Field_, value: Any) -> str | None:
@@ -288,7 +462,10 @@ def validate(lead_type: str, submitted: dict[str, Any]) -> dict[str, str]:
     errors: dict[str, str] = {}
     values = {k: (v.strip() if isinstance(v, str) else v) for k, v in (submitted or {}).items()}
 
-    for f in fields_for(lead_type):
+    # `applicable_fields`, not `fields_for`: a customer who asked to be phoned is
+    # not missing an email address, and marking one required would fail every
+    # question lead that ever gets sent.
+    for f in applicable_fields(lead_type, values):
         if message := validate_one(f, values.get(f.name, "")):
             errors[f.name] = message
     return errors
@@ -305,7 +482,7 @@ def clean(lead_type: str, submitted: dict[str, Any]) -> dict[str, str]:
     """
     values = {k: (v.strip() if isinstance(v, str) else v) for k, v in (submitted or {}).items()}
     out: dict[str, str] = {}
-    for f in fields_for(lead_type):
+    for f in applicable_fields(lead_type, values):
         value = values.get(f.name) or ""
         if not value:
             continue
@@ -325,7 +502,7 @@ def summary_for(lead_type: str, answers: dict[str, Any]) -> list[dict[str, str]]
     something went wrong, when in fact they just had nothing to add.
     """
     rows = []
-    for f in fields_for(lead_type):
+    for f in applicable_fields(lead_type, answers):
         value = str(answers.get(f.name) or "").strip()
         if value:
             rows.append({"label": f.label, "value": value})

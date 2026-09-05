@@ -583,8 +583,14 @@ function setComposer(ask) {
   clip.hidden = true;
   input.disabled = false;
 
-  const field = ask && ask.field;
-  const kind = ask ? (ask.type === "photos" ? "photos" : field.kind) : "chat";
+  // Not every step has a field. The photo step and the read-back are their own
+  // kinds of turn, and reading `.kind` off the field they do not have threw
+  // right here — inside the `finally` that re-dresses the composer, so the
+  // read-back arrived with its "Send it over" button never rendered and no
+  // error visible anywhere. The step the whole interview leads to was the one
+  // step you could not complete.
+  const field = (ask && ask.field) || null;
+  const kind = !ask ? "chat" : field ? field.kind : ask.type;
 
   input.placeholder =
     kind === "photos" ? "Or type something…"

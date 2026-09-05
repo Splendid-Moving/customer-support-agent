@@ -23,6 +23,19 @@ genuinely can't answer.
 
 Out-of-state is the one exception. We do not price those hourly, so there is no
 answer the knowledge lane can give, and it goes to the form on topic alone.
+
+THE LANE THAT WAS MISSING
+-------------------------
+A customer asked what we charge to haul away a fridge. We do not publish that, so
+the knowledge lane said so honestly and offered to have the office come back to
+them; they gave their name and number; and the next turn had nowhere to go, so
+they were told to call us instead. The agent had asked for details it then could
+not use, which is worse than never offering.
+
+**question** closes that. An offer to take something to the office is now a real
+lane with a real email at the end of it, and the turn that accepts the offer is
+the one this node has to recognise — usually as nothing more than "yes" or a
+name and a phone number.
 """
 
 import logging
@@ -40,12 +53,13 @@ class Route(BaseModel):
     """Structured routing decision."""
 
     intent: str = Field(
-        description="One of: 'knowledge', 'estimate', 'long_distance', 'handoff'."
+        description="One of: 'knowledge', 'estimate', 'long_distance', 'question', "
+                    "'handoff'."
     )
     reasoning: str = Field(description="One short sentence explaining the choice.")
 
 
-VALID = ("knowledge", "estimate", "long_distance", "handoff")
+VALID = ("knowledge", "estimate", "long_distance", "question", "handoff")
 
 
 SYSTEM_PROMPT = """\
@@ -78,6 +92,29 @@ answers them.
   "I'm relocating to Seattle in June"
   "how much to move from LA to Phoenix?"
 
+**question** — they have asked something we could not answer, and they want an \
+actual answer from a person. Two shapes, and the second is the one that gets \
+missed:
+
+  1. They ask us to find out or to pass it on.
+     "can someone tell me what the haul away fee is?"
+     "could you find out if you can take a piano?"
+     "can someone from the office email me about storage?"
+  2. YOU JUST OFFERED and they took you up on it. Look at your own previous \
+message. If it offered to have the office get back to them or to take their \
+details, then almost anything they say next is accepting that offer — including \
+a bare "yes", "please do", "sure", or simply their name and a phone number or \
+email address with nothing else attached.
+     "yes please"
+     "Nick, 818 505 4576"
+     "sure, email me at nick@example.com"
+
+  Contact details on their own are NEVER a routing puzzle to be solved from the \
+words in them. Someone types their phone number because they were asked for it. \
+Read the message before it to see what for: if you offered to take a question to \
+the office, it is **question**; if the estimate interview was starting, it is \
+**estimate**.
+
 **handoff** — they want something DONE to a specific existing booking, or they \
 have a complaint about a job we already did. The test is whether a person needs \
 to look their record up.
@@ -106,7 +143,14 @@ becomes **handoff** when they want us to actually cancel or change a booking \
 that already exists.
 - When torn between knowledge and estimate, choose **knowledge**. Answering a \
 question costs nothing; opening a form on someone who wanted a one-line answer \
-loses the job."""
+loses the job.
+- **question** is for getting an ANSWER back to them. **handoff** is for a job, \
+booking or bill that already exists and needs looking up. "What do you charge to \
+haul away a fridge?" followed by "yes, have someone call me" is **question**; \
+"I need to move my Saturday booking" is **handoff**.
+- Never route to **question** for something we have already answered, or that a \
+plain answer would cover. It exists for the gaps in our material, and every \
+lead sent through it is a manager making a phone call."""
 
 
 #: Added to the prompt once a lead has already gone to the office in this
@@ -126,10 +170,38 @@ Route to a lead lane only if they are clearly asking about a SEPARATE move: a \
 different property, a second job, a friend's move."""
 
 
+#: The same problem for the question lane. Someone whose question has just gone
+#: to the office and who then asks "how long does that usually take?" must not be
+#: walked through handing over their name and number a second time.
+QUESTION_SUBMITTED = """
+
+IMPORTANT — this conversation has ALREADY sent the customer's question to the \
+office, with their contact details, and they have been told someone will come \
+back to them.
+
+Anything they say now about that — when to expect a reply, how it will come, \
+adding a thought to what they already asked — is **knowledge**. They are waiting, \
+not starting again. Do not send them round the details a second time.
+
+Route to **question** again only if they clearly want the office to answer a \
+SEPARATE thing we have not covered."""
+
+
 def _system_prompt(state: SupportState) -> str:
+    """
+    The prompt, plus a note about anything this conversation has already sent.
+
+    Which note depends on WHICH lead went out. Telling the router that an
+    estimate is with the office, when what actually went over was a question
+    about haul-away fees, describes a conversation that did not happen — and the
+    router's whole job on these turns is reading what did.
+    """
     prompt = SYSTEM_PROMPT
     if state.get("lead_submitted"):
-        prompt += ALREADY_SUBMITTED
+        if state.get("lead_type") == "question":
+            prompt += QUESTION_SUBMITTED
+        else:
+            prompt += ALREADY_SUBMITTED
     return prompt
 
 
@@ -161,8 +233,8 @@ def pick_lane(state: SupportState) -> str:
     where opening the form on someone who did not ask for it loses the job.
     """
     intent = state.get("intent", "knowledge")
-    # Both lead types share one lane; only the questions differ. prefill runs
-    # first so the interview can skip whatever they have already told us.
-    if intent in ("estimate", "long_distance"):
+    # All three lead types share one lane; only the questions differ. prefill
+    # runs first so the interview can skip whatever they have already told us.
+    if intent in ("estimate", "long_distance", "question"):
         return "prefill"
     return intent if intent in ("knowledge", "handoff") else "knowledge"

@@ -116,6 +116,139 @@ def test_long_distance_asks_how_firm_the_date_is_and_estimate_does_not():
     assert "flexibility" not in local
 
 
+# ── The question form, and its one branch ──────────────────────────────────────
+# It exists because of a conversation that dead-ended: the agent said it would
+# have the office get back to someone, took their name and number, and then told
+# them to call us. These are the checks that the details it takes are usable.
+
+ASKED_PHONE = {
+    "question": "How much extra to haul away a fridge.",
+    "name": "Nick",
+    "contact_method": "Phone",
+    "phone": "(818) 505-4576",
+}
+
+ASKED_EMAIL = {
+    "question": "Whether you can take a piano down two flights.",
+    "name": "Ana Ruiz",
+    "contact_method": "Email",
+    "email": "ana@example.com",
+}
+
+
+@pytest.mark.parametrize("asked", [ASKED_PHONE, ASKED_EMAIL])
+def test_either_way_of_being_contacted_is_a_complete_question(asked):
+    assert lead_form.validate("question", asked) == {}
+
+
+def test_the_branch_they_did_not_pick_is_not_missing():
+    """
+    Both contact fields are required, and only one of them is ever asked. If the
+    unasked one still counted as required, every question lead would fail
+    validation on the way out — and the customer would be told the send failed
+    for a field they were never shown.
+    """
+    assert "email" not in lead_form.validate("question", ASKED_PHONE)
+    assert "phone" not in lead_form.validate("question", ASKED_EMAIL)
+
+
+def test_the_branch_they_did_pick_is_still_required():
+    without = {k: v for k, v in ASKED_PHONE.items() if k != "phone"}
+    assert "phone" in lead_form.validate("question", without)
+
+
+def test_a_question_needs_a_question_and_a_name():
+    for name in ("question", "name", "contact_method"):
+        missing = {k: v for k, v in ASKED_PHONE.items() if k != name}
+        assert name in lead_form.validate("question", missing), f"{name} was not required"
+
+
+def test_an_answer_from_the_road_not_taken_never_reaches_the_office():
+    """
+    Posted directly, or left over from a form that was restarted. A manager
+    seeing both a number and an address does not know which one the customer
+    actually asked to be reached on.
+    """
+    cleaned = lead_form.clean("question", {**ASKED_PHONE, "email": "stale@example.com"})
+    assert "email" not in cleaned
+    assert cleaned["phone"] == "(818) 505-4576"
+
+    rows = [r["label"] for r in lead_form.summary_for("question", {**ASKED_PHONE,
+                                                                  "email": "x@y.co"})]
+    assert "Email" not in rows
+
+
+def test_the_progress_bar_counts_an_open_branch_once():
+    """
+    Someone who has not yet said phone-or-email will be asked for exactly ONE of
+    them. Counting both shows a form a step longer than it is, and a progress
+    bar that jumps backwards is worse than none.
+    """
+    assert lead_form.steps_remaining("question", {}) == 5
+    assert lead_form.steps_remaining("question", {"contact_method": "Phone"}) == 4
+    assert lead_form.steps_remaining("question", ASKED_PHONE) == 1  # anything_else
+
+
+def test_a_question_never_asks_for_photos():
+    """There is nothing to photograph, and a step whose only answer is 'skip'."""
+    assert lead_form.wants_photos("question") is False
+    assert lead_form.wants_photos("estimate") is True
+    assert lead_form.wants_photos("long_distance") is True
+
+
+def test_the_question_spec_is_json_serialisable():
+    """`only_if` is a tuple, and a tuple that reaches the browser un-encoded is a
+    form that never renders."""
+    import json
+    json.dumps(lead_form.spec("question"))
+
+
+# ── Typed answers to a multiple-choice question ────────────────────────────────
+
+@pytest.mark.parametrize(
+    "typed,expected",
+    [
+        ("Phone", "Phone"),
+        ("phone", "Phone"),
+        ("email", "Email"),
+        ("  EMAIL ", "Email"),
+        ("by email please", "Email"),
+        ("call me on the phone", "Phone"),
+    ],
+)
+def test_typing_the_option_counts_as_tapping_it(typed, expected):
+    """The buttons are there to be tapped, but the message box never goes away."""
+    field = {f.name: f for f in lead_form.fields_for("question")}["contact_method"]
+    assert lead_form.coerce_option(field, typed) == expected
+
+
+@pytest.mark.parametrize("typed", ["whichever", "phone or email", "yes"])
+def test_an_ambiguous_answer_is_left_to_be_asked_again(typed):
+    field = {f.name: f for f in lead_form.fields_for("question")}["contact_method"]
+    assert lead_form.coerce_option(field, typed) == typed
+
+
+def test_a_size_can_be_typed_too():
+    field = {f.name: f for f in lead_form.fields_for("estimate")}["home_size"]
+    assert lead_form.coerce_option(field, "2 bed") == "2 bedrooms"
+    assert lead_form.coerce_option(field, "studio") == "Studio"
+
+
+# ── "no" is not a piece of information ─────────────────────────────────────────
+
+@pytest.mark.parametrize(
+    "said", ["no", "No.", "nope", "nothing else", "that's it", "all good", "not really"]
+)
+def test_declining_the_last_question_is_not_recorded_as_an_answer(said):
+    """A manager reading 'Also asked — no' is reading a row looking for a point."""
+    assert lead_form.is_nothing(said)
+
+
+@pytest.mark.parametrize("said", ["no elevator at the new place", "nothing fragile, but a piano"])
+def test_an_answer_that_merely_starts_with_no_is_kept(said):
+    assert not lead_form.is_nothing(said)
+
+
 def test_an_unknown_lead_type_falls_back_to_the_estimate_form():
     assert lead_form.spec("nonsense")["lead_type"] == "estimate"
 
@@ -145,7 +278,7 @@ def test_the_first_question_does_not_greet_again():
 
 def test_every_field_has_something_to_say():
     """A missing `ask` silently falls back to 'What's your <label>?'."""
-    for lead_type in ("estimate", "long_distance"):
+    for lead_type in ("estimate", "long_distance", "question"):
         for f in lead_form.fields_for(lead_type):
             assert f.ask.strip(), f"{lead_type}/{f.name} has no question written"
 

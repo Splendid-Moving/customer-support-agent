@@ -12,10 +12,11 @@ from agent import graph as graph_module
 from agent.nodes import refuse, router
 
 
-def test_both_lead_types_share_the_one_lane():
+def test_all_three_lead_types_share_the_one_lane():
     """prefill first, so the interview can skip what they already told us."""
     assert router.pick_lane({"intent": "estimate"}) == "prefill"
     assert router.pick_lane({"intent": "long_distance"}) == "prefill"
+    assert router.pick_lane({"intent": "question"}) == "prefill"
 
 
 def test_the_other_lanes_map_to_themselves():
@@ -106,3 +107,31 @@ def test_the_router_is_told_when_a_lead_already_went_out():
 def test_a_plain_question_is_never_a_reason_to_open_the_form():
     guidance = router.SYSTEM_PROMPT.lower()
     assert "how long do i wait" in guidance
+
+
+def test_the_follow_up_note_describes_the_lead_that_actually_went_out():
+    """
+    The router is told what this conversation has already sent. Telling it an
+    estimate is with the office, when what went over was a question about
+    haul-away fees, describes a conversation that did not happen — and reading
+    what did is the whole job on these turns.
+    """
+    after_estimate = router._system_prompt({"lead_submitted": True, "lead_type": "estimate"})
+    after_question = router._system_prompt({"lead_submitted": True, "lead_type": "question"})
+
+    assert "estimate request" in after_estimate.lower()
+    assert after_estimate != after_question
+    assert "question to the office" in after_question.lower()
+
+
+def test_taking_someone_up_on_the_offer_is_its_own_lane():
+    """
+    The conversation this lane was built for: we could not answer, we offered to
+    ask the office, and they replied with nothing but their name and a phone
+    number. Routed on the words alone that is meaningless, so the prompt has to
+    say to read the message before it.
+    """
+    guidance = router.SYSTEM_PROMPT.lower()
+    assert "**question**" in guidance
+    assert "you just offered" in guidance
+    assert "contact details on their own are never" in guidance

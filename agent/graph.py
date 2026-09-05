@@ -11,11 +11,15 @@ Graph wiring. The whole topology lives here, readable top to bottom.
              |        ^              |
              |        +-- rewrite ---+
              |
-             +--> collect_lead  [PAUSES on the form]  --> submit_lead --> END
-             |         |
-             |         +-- cancelled --> END
+             +--> prefill --> collect_lead  [PAUSES per question]
+             |                     |
+             |                     +--> submit_lead --> END
+             |                     +-- cancelled -----> END
              |
              +--> handoff ----------------------------------> END
+
+An estimate, an out-of-state move and a question for the office all take the
+prefill lane; they are three field lists behind one interview and one email.
 
 Two things about this shape are deliberate and worth keeping.
 

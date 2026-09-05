@@ -69,6 +69,63 @@ def test_customer_typed_html_cannot_break_the_layout(hostile):
     assert "&lt;" in html or "&amp;" in html
 
 
+# ── Questions ──────────────────────────────────────────────────────────────────
+# A question is answered by a person picking up the phone, so what the email has
+# to carry is different: the question itself, and how to reach whoever asked it.
+
+ASKED = {
+    "question": "How much extra to haul away a fridge.",
+    "name": "Nick",
+    "contact_method": "Phone",
+    "phone": "(818) 505-4576",
+}
+
+
+def test_a_question_says_so_and_carries_the_number_in_the_subject():
+    subject = email.subject_for("question", ASKED)
+    assert subject.startswith("Question")
+    assert "Nick" in subject
+    assert "(818) 505-4576" in subject, "the number is what they need to act on it"
+
+
+def test_an_emailed_question_carries_the_address_instead():
+    asked = {"question": "What does storage cost?", "name": "Ana",
+             "contact_method": "Email", "email": "ana@example.com"}
+    assert "ana@example.com" in email.subject_for("question", asked)
+
+
+def test_the_question_and_anything_else_they_asked_both_appear():
+    html = email.render("question", {**ASKED, "anything_else": "Do you sell boxes?"})
+    assert "How much extra to haul away a fridge." in html
+    assert "Do you sell boxes?" in html
+
+
+def test_a_question_is_marked_as_something_we_could_not_answer():
+    assert "could not answer" in email.render("question", ASKED)
+
+
+def test_nobody_is_told_to_hit_reply_on_a_lead_with_no_address():
+    """
+    `reply_to` is only set when there is an email address. On a question from
+    someone who asked to be phoned there isn't one — so "reply to this email"
+    is an instruction to write to nobody.
+    """
+    phoned = email.render("question", ASKED)
+    assert "Reply to this email" not in phoned
+    assert "asked to be phoned" in phoned
+
+    emailed = email.render("question", {"question": "q", "name": "Ana",
+                                        "contact_method": "Email",
+                                        "email": "ana@example.com"})
+    assert "Reply to this email" in emailed
+
+
+def test_a_question_typed_as_html_still_cannot_break_the_layout():
+    html = email.render("question", {**ASKED, "question": "<b>how much?</b>"})
+    assert "<b>how much?</b>" not in html
+    assert "&lt;b&gt;" in html
+
+
 def test_dry_run_sends_nothing(monkeypatch):
     monkeypatch.setenv("DRY_RUN", "true")
     result = email.send_lead("estimate", LEAD)

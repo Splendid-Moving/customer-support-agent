@@ -30,6 +30,17 @@ details through to photos of what's moving. Anything the customer already
 mentioned is skipped rather than asked again. At the end it emails the office
 with the photos attached, and a manager takes it from there.
 
+**Takes a question to the office when it can't answer one.** Ask something our
+material doesn't cover — what we charge to haul away a fridge, say — and it says
+so, offers to send the question over, and then actually does: name, phone or
+email (their choice, tapped), anything else they wanted to ask, and an email to
+the office with their question at the top of it. The customer is told where the
+answer is coming back to, and the conversation carries on.
+
+> *just a fridge, how much extra*
+> I'm not sure of the exact fee off the top of my head. Want me to send that over
+> to the office so someone can come back to you with it?
+
 **Ignores anyone trying to reprogram it.** "Ignore all previous instructions" and
 its many cousins get a polite line about moving and nothing else.
 
@@ -73,6 +84,9 @@ router ─┬─► knowledge ──► answer_check ─────────
         └─► handoff ───────────────────────────────────► END
 ```
 
+The middle lane runs three forms: a local estimate, an out-of-state move, and a
+question for the office. One interview, one email, three field lists.
+
 **The guard is the only way in.** Every message passes through it before anything
 else runs — not a check inside each lane, one gate in front of all of them, so a
 lane added later cannot quietly skip it.
@@ -95,7 +109,7 @@ what makes this safe to leave running on a public URL.
 | `services/` | The outside world — the knowledge loader, Resend, photo storage. Nothing here knows the agent exists. |
 | `static/index.html` | The chat page. One file, no build step. |
 | `scripts/import_kb.py` | Turns the KB spreadsheet into the markdown the agent reads. |
-| `tests/` | 149 checks that run in under a second, with no API key and no network. |
+| `tests/` | 197 checks that run in under a second, with no API key and no network. |
 
 Entry points:
 
@@ -127,7 +141,7 @@ wording change puts a real lead in the office inbox, and it looks exactly like a
 customer's.
 
 ```bash
-pytest                    # 149 checks, no API key needed
+pytest                    # 197 checks, no API key needed
 ```
 
 ---
@@ -157,9 +171,10 @@ doesn't cover (hours, service area, what comes with the crew). The importer
 leaves it alone.
 
 The agent can only say what is in `knowledge/`. If a customer asks something it
-doesn't cover, it says so and offers a follow-up — which is correct behaviour and
-also your signal that a row is missing. `knowledge/README.md` explains how to
-write a good one.
+doesn't cover, it says so and offers to send the question to the office — which
+is correct behaviour and also your signal that a row is missing. Those emails are
+the gap list: a question that arrives twice is a row somebody should write.
+`knowledge/README.md` explains how to write a good one.
 
 **The `notes` column is operating knowledge, not a comment.** "Ask how many
 movers before quoting" and "escalate the exact amount to the office" are carried
@@ -223,25 +238,39 @@ whatever it decides a field contains lands in an email a manager acts on. The on
 model call in that lane is `prefill`, which only fills fields the customer can
 see are wrong — never name, phone or email.
 
+The single exception is `known_contact`: details the customer typed into an
+earlier form in the same conversation and confirmed on the read-back. Those carry
+over, so a second question does not send someone round their own phone number
+again. Extracted from prose they would be a guess; typed and confirmed, they are
+their own answer.
+
 **The guard does not run during the estimate interview.** While the graph is
 paused, a `Command(resume=...)` re-enters the paused node directly — the router
 and the guard are never called. That is safe only because nothing in
 `collect_lead` calls a model: answers go into `lead` and then into one email, and
 they never join `messages`, so there is no prompt for them to reach. The two
 things that DO need enforcing there are enforced separately: request size, in
-`app.oversized` and the body-size middleware, and the customer's first name,
-which is stripped to one alphabetic word before being echoed back — that reply
-becomes an `AIMessage`, and it is the only path from the interview into the
-history a later model call reads.
+`app.oversized` and the body-size middleware, and whatever the confirmation
+repeats back — that reply becomes an `AIMessage`, and it is the only path from
+the interview into the history a later model call reads. So it repeats back very
+little: the first name, stripped to one alphabetic word, and on a question the
+number or address the answer is going to, both of which have been through a
+validator that permits no whitespace at all.
 
 **Refusals are fixed strings.** Asking the model to write a polite refusal hands
 the attacker their text in the model's context, which is the thing being defended
 against. `agent/nodes/refuse.py` has no model call.
 
-**The agent never claims it did something.** It cannot book, reschedule, look
-anything up, or pass a message to anybody. `handoff` gives the phone number
-rather than saying "I've escalated this", because a customer who believes that
-waits for a call that is not coming.
+**The agent never claims it did something it did not do.** It cannot book,
+reschedule, or look anything up, and `handoff` gives the phone number rather than
+saying "I've escalated this" — a customer who believes that waits for a call that
+is not coming.
+
+The one thing it can now genuinely set in motion is an email: an estimate, or a
+question for the office. That distinction is the whole point of the `question`
+lane. The agent used to *offer* a callback it had no way to arrange — it asked
+for a name and a number and then told the customer to phone us, which is worse
+than never offering. An offer the agent makes has to be one the graph can keep.
 
 ---
 
@@ -250,6 +279,8 @@ waits for a call that is not coming.
 - Book, change or cancel a job
 - Look up an existing booking, invoice or crew
 - Quote a total price for a move — only the published hourly rates
+- Answer a question itself once it has sent it over — the office does that, by
+  phone or by email, whichever the customer picked
 - Reply to anyone by email
 - Reach GoHighLevel or the calendar at all
 

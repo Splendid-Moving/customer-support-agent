@@ -149,9 +149,10 @@ def _handoff_line() -> str:
     recovery, it is a third roll of the dice.
     """
     return (
-        "I want to make sure I get this exactly right rather than guess. Give the "
-        f"office a call on {config.COMPANY_PHONE} and someone will sort it out "
-        "with you — or leave me your details and I'll have a manager reach out."
+        "I want to make sure I get this exactly right rather than guess. Want me "
+        "to send it over to the office so someone can come back to you with it? "
+        f"Or the quickest way is to call us on {config.COMPANY_PHONE}, any day "
+        "from 6am."
     )
 
 

@@ -1,6 +1,9 @@
 """
 The one thing this agent can cause to happen in the world: an email to the office.
 
+Either an estimate a manager prices, or a question the chat could not answer and
+a person now has to — same send, same inbox, different subject line.
+
 Sent through Resend, which ghl_calendar_sync already uses, so it is one account
 and one API key across the workspace. Resend takes attachments natively, which is
 the whole reason it is here rather than a webhook — the customer's photos are the
@@ -46,12 +49,24 @@ class EmailError(RuntimeError):
 LEAD_LABEL = {
     "estimate": "Estimate request",
     "long_distance": "LONG DISTANCE",
+    "question": "Question",
 }
 
 
 def subject_for(lead_type: str, lead: dict[str, str]) -> str:
     """What a manager sees in their inbox list, on a phone."""
     bits = [LEAD_LABEL.get(lead_type, "Lead"), lead.get("name", "no name")]
+
+    if lead_type == "question":
+        # How to reach them, in the subject line. A question is answered by
+        # somebody picking up the phone, and the number they need is the first
+        # thing they would otherwise have to open the email to find.
+        if lead.get("contact_method") == "Email" and lead.get("email"):
+            bits.append(lead["email"])
+        elif lead.get("phone"):
+            bits.append(lead["phone"])
+        return " — ".join(bits)
+
     if size := lead.get("home_size"):
         bits.append(size)
     if when := lead.get("move_date"):
@@ -87,6 +102,20 @@ def _escape(text: str) -> str:
     )
 
 
+def _reply_hint(lead_type: str, lead: dict[str, str]) -> str:
+    """
+    The line under the heading telling a manager how to answer this one.
+
+    On a question it is not always "hit reply": someone who asked to be phoned
+    left no email address, and `reply_to` is unset on that send — so a manager
+    who hits reply is writing to nobody.
+    """
+    if lead_type == "question" and lead.get("contact_method") == "Phone":
+        phone = _escape(lead.get("phone", ""))
+        return f"They asked to be phoned{f' on {phone}' if phone else ''}."
+    return "Reply to this email to go straight back to the customer."
+
+
 def render(lead_type: str, lead: dict[str, str], *, photo_count: int = 0) -> str:
     """The lead as HTML, laid out to be read in five seconds."""
     rows = "".join(
@@ -102,6 +131,15 @@ def render(lead_type: str, lead: dict[str, str], *, photo_count: int = 0) -> str
             'border-radius:8px;font-size:14px;font-weight:600;margin-bottom:18px">'
             "Long-distance move — not an hourly local job, needs individual pricing."
             "</div>"
+        )
+    elif lead_type == "question":
+        how = lead.get("contact_method") or ""
+        by = f" Answer by {how.lower()}." if how else ""
+        banner = (
+            '<div style="background:#032449;color:#fff;padding:10px 16px;'
+            'border-radius:8px;font-size:14px;font-weight:600;margin-bottom:18px">'
+            "The chat could not answer this — the customer is waiting on us."
+            f"{_escape(by)}</div>"
         )
 
     photos = ""
@@ -120,7 +158,7 @@ def render(lead_type: str, lead: dict[str, str], *, photo_count: int = 0) -> str
       {_escape(LEAD_LABEL.get(lead_type, "Lead"))} from the website chat
     </h2>
     <p style="margin:0 0 18px;color:#5b6b7f;font-size:14px">
-      Reply to this email to go straight back to the customer.
+      {_reply_hint(lead_type, lead)}
     </p>
     <table style="border-collapse:collapse;width:100%">{rows}</table>
     {photos}
