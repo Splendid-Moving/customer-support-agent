@@ -109,7 +109,7 @@ what makes this safe to leave running on a public URL.
 | `services/` | The outside world — the knowledge loader, Resend, photo storage. Nothing here knows the agent exists. |
 | `static/index.html` | The chat page. One file, no build step. |
 | `scripts/import_kb.py` | Turns the KB spreadsheet into the markdown the agent reads. |
-| `tests/` | 197 checks that run in under a second, with no API key and no network. |
+| `tests/` | 207 checks that run in under a second, with no API key and no network. |
 
 Entry points:
 
@@ -141,7 +141,7 @@ wording change puts a real lead in the office inbox, and it looks exactly like a
 customer's.
 
 ```bash
-pytest                    # 197 checks, no API key needed
+pytest                    # 207 checks, no API key needed
 ```
 
 ---
@@ -237,6 +237,16 @@ fields. A model-run interview asks better questions and can loop forever, and
 whatever it decides a field contains lands in an email a manager acts on. The one
 model call in that lane is `prefill`, which only fills fields the customer can
 see are wrong — never name, phone or email.
+
+**Nothing the extractor invents reaches a manager.** The question it writes for
+the `question` lane is checked in Python against the words actually used in the
+conversation — by either side — and thrown away if it names an item, place or
+amount nobody mentioned. This is not hypothetical: the prompt used to carry three
+example answers, and a customer who typed only "do you do haul away" had the
+first of them handed back to them as their own question, fridge and all. An
+example in a prompt is an answer the model is allowed to give. A dropped
+extraction costs one message; a wrong one costs a manager phoning somebody about
+the wrong thing.
 
 The single exception is `known_contact`: details the customer typed into an
 earlier form in the same conversation and confirmed on the read-back. Those carry
