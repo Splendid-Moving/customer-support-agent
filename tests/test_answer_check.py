@@ -119,3 +119,37 @@ def test_it_gives_up_rather_than_looping():
 def test_an_empty_draft_is_treated_as_a_failure():
     result = answer_check.check({"draft": "", "answer_attempts": 1})
     assert result.get("answer_complaint")
+
+
+# ── HANDLING notes narrow an answer, they don't withhold it ────────────────────
+
+def test_the_persona_says_an_ask_first_note_still_answers():
+    """
+    "How much do you charge?" is the first thing people tap. It started coming
+    back as "how many movers are you thinking of?" with no figures at all — the
+    HANDLING note on the rates row ("ask how many movers before quoting") read
+    as permission to withhold what we publish.
+    """
+    from schemas import persona
+
+    notes = persona.HANDLING_NOTES.lower()
+    assert "never means holding back" in notes
+    assert "ask" in notes
+
+
+@pytest.mark.live
+def test_the_rates_question_answers_with_rates():
+    """`pytest -m live` — hits a real model."""
+    from langgraph.checkpoint.memory import InMemorySaver
+    from langchain_core.messages import HumanMessage
+
+    from agent.graph import build_graph
+
+    graph = build_graph(checkpointer=InMemorySaver())
+    result = graph.invoke(
+        {"messages": [HumanMessage(content="How much do you charge?")]},
+        {"configurable": {"thread_id": "live-rates"}},
+    )
+    reply = result["messages"][-1].content
+    for rate in ("$115", "$145", "$180"):
+        assert rate in reply, f"{rate} missing from: {reply[:200]}"

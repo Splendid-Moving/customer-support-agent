@@ -19,19 +19,21 @@ import json
 import logging
 import sqlite3
 import warnings
+from functools import lru_cache
 import time
 import uuid
 from collections import defaultdict, deque
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 from pydantic import BaseModel
 
 from agent.graph import build_graph
+from schemas import persona
 from services import config, knowledge, tracing, uploads
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -229,9 +231,26 @@ STREAMING_NODES = {"knowledge", "handoff"}
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
+@lru_cache(maxsize=1)
+def _page(mtime_ns: int) -> str:
+    """
+    The chat page with the agent's name filled in.
+
+    The name lives in schemas/persona.py and nowhere else. It used to be written
+    into the HTML as well, in three places, and renaming the agent missed all
+    three — so the page is a template now. Cached on the file's mtime, which
+    means an edit shows up on the next reload with no restart.
+    """
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    return (
+        html.replace("{{AGENT_NAME}}", persona.AGENT_NAME)
+            .replace("{{AGENT_INITIAL}}", persona.AGENT_NAME[:1].upper())
+    )
+
+
 @app.get("/")
 def index():
-    return FileResponse(STATIC / "index.html")
+    return HTMLResponse(_page((STATIC / "index.html").stat().st_mtime_ns))
 
 
 @app.get("/health")

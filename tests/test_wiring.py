@@ -297,3 +297,65 @@ def test_only_a_plain_first_name_is_echoed_back():
     assert _first_name("<script>alert(1)</script>") == "scriptalert1script"[:24]
     assert _first_name("A" * 500) == "A" * 24
     assert _first_name("") == ""
+
+
+# ── The agent has one name ────────────────────────────────────────────────────
+
+def test_the_page_is_served_with_the_agent_name_filled_in():
+    """
+    The name lives in schemas/persona.py. It used to be copied into the HTML as
+    well, in three places, and renaming Alex to Sam missed all three.
+    """
+    from schemas import persona
+
+    html = web._page((web.STATIC / "index.html").stat().st_mtime_ns)
+    assert "{{AGENT_NAME}}" not in html
+    assert "{{AGENT_INITIAL}}" not in html
+    assert f"Hi, I'm <em>{persona.AGENT_NAME}</em>" in html
+    assert f"{persona.AGENT_NAME} · Splendid Moving" in html
+
+
+def test_the_page_never_names_the_agent_twice():
+    """
+    Catches a relapse: someone adding a greeting and typing the name straight
+    into the HTML instead of using the token. The rendered page should contain
+    the agent's name only where the template put it.
+    """
+    from schemas import persona
+
+    source = (web.STATIC / "index.html").read_text(encoding="utf-8")
+    assert persona.AGENT_NAME not in source, (
+        f"{persona.AGENT_NAME!r} is hardcoded in static/index.html — "
+        "use {{AGENT_NAME}} so schemas/persona.py stays the one definition"
+    )
+
+
+def test_every_opening_suggestion_is_something_the_knowledge_base_answers():
+    """
+    A suggestion chip that leads to "I'm not sure, let me have someone call you"
+    is worse than no chip — it is the first thing a customer taps and the first
+    thing they learn about us.
+    """
+    import re
+
+    from services import knowledge
+
+    html = (web.STATIC / "index.html").read_text(encoding="utf-8")
+    chips = re.findall(r'<button class="chip" type="button">([^<]+)</button>', html)
+    assert len(chips) >= 4, chips
+
+    kb = knowledge.all_context().lower()
+    # The two that open the estimate lane are actions, not questions.
+    actions = {"i'd like an estimate", "moving out of state"}
+    for chip in chips:
+        if chip.lower() in actions:
+            continue
+        # Each remaining chip should have its subject covered in knowledge/.
+        topic = {
+            "How much do you charge?": "/hr",
+            "What's included?": "shrink wrap",
+            "Any hidden fees?": "double drive time",
+            "Is my stuff insured?": "released-value",
+        }.get(chip)
+        assert topic, f"chip {chip!r} has no declared topic in this test"
+        assert topic in kb, f"chip {chip!r} asks about {topic!r}, missing from knowledge/"

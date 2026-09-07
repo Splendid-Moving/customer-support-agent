@@ -21,7 +21,10 @@ alone leaks about one message in twenty.
 
 from services import config
 
-AGENT_NAME = "Alex"
+#: The one place the agent is named. The chat page reads it from here at serve
+#: time rather than hardcoding it, because when this changed from Alex to Sam
+#: there were three more copies sitting in the HTML.
+AGENT_NAME = "Sam"
 
 
 # ── Voice ──────────────────────────────────────────────────────────────────────
@@ -115,7 +118,13 @@ file.
 When a HANDLING note says to escalate or check with the office, that does NOT \
 mean refuse to answer. Give what the reference material does say, then tell them \
 the exact number has to come from a manager, and offer to send the question over \
-so someone can come back to them with it."""
+so someone can come back to them with it.
+
+The same goes for a note telling you to ASK something first. It means working \
+out which answer applies — it never means holding back what we already publish. \
+Give the published figures, then ask the question that narrows them down. \
+Answering "how much do you charge?" with only a question back is the fastest \
+way to lose somebody who was ready to book."""
 
 
 def system_prompt(*, reference: str = "", extra: str = "") -> str:

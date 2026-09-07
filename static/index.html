@@ -331,9 +331,9 @@ footer.composer {
 
 <div class="app">
   <header class="bar">
-    <div class="avatar" aria-hidden="true">AL</div>
+    <div class="avatar" aria-hidden="true">{{AGENT_INITIAL}}</div>
     <div>
-      <div class="who-name">Alex · Splendid Moving</div>
+      <div class="who-name">{{AGENT_NAME}} · Splendid Moving</div>
       <div class="who-sub"><span class="dot"></span> Usually replies instantly</div>
     </div>
     <div class="grow"></div>
@@ -343,16 +343,22 @@ footer.composer {
 
   <main class="thread" id="thread" role="log" aria-live="polite" aria-label="Conversation">
     <div class="hello" id="hello">
-      <h1 class="reveal">Hi, I'm <em>Alex</em>.</h1>
+      <h1 class="reveal">Hi, I'm <em>{{AGENT_NAME}}</em>.</h1>
       <p class="reveal" style="animation-delay:.1s">
-        I'm on the crew here in LA. Ask me anything about your move — or I'll get
-        a manager to put a real estimate together for you.
+        I'm in the office here at Splendid Moving. Ask me anything about your
+        move, or I'll take a few details and get you a real estimate.
       </p>
+      <!-- Two things people came to do, then the four questions they actually
+           ask. Every one of these is answered outright by knowledge/ — a
+           suggestion that leads to "I'm not sure, let me have someone call
+           you" is worse than no suggestion. -->
       <div class="chips reveal" style="animation-delay:.2s">
-        <button class="chip" type="button">What do you charge?</button>
-        <button class="chip" type="button">What's included?</button>
         <button class="chip" type="button">I'd like an estimate</button>
+        <button class="chip" type="button">How much do you charge?</button>
         <button class="chip" type="button">Moving out of state</button>
+        <button class="chip" type="button">What's included?</button>
+        <button class="chip" type="button">Any hidden fees?</button>
+        <button class="chip" type="button">Is my stuff insured?</button>
       </div>
     </div>
   </main>
