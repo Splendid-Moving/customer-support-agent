@@ -44,17 +44,29 @@ class Field_:
     """
     One thing we need from the customer.
 
-    `label` is how it is titled in the email a manager reads. `ask` is how the
-    agent asks for it in the chat — a different job, and the reason both exist.
-    "Moving from" is a good column heading and a terrible thing to say out loud.
+    Three different audiences, three different strings:
 
-    `ask` may contain `{name}`, filled in with what they have already told us, so
-    the second question can use their first name.
+    `label`  the column heading in the email a manager reads
+    `recap`  the same row read back to the CUSTOMER before sending
+    `ask`    how the agent asks for it out loud
+
+    They diverge more than you would expect. "Their question" is right in the
+    office's inbox and wrong to the person who asked it — they see "Your
+    question". `recap` falls back to `label` where the two happen to agree.
+
+    `ask` and `clarify` may contain `{name}`, filled in with what they have
+    already told us, so later questions can use their first name.
     """
 
     name: str
     label: str
     ask: str = ""
+    recap: str = ""
+
+    #: Used when the answer suggests they did not follow the question. Says the
+    #: same thing more plainly rather than repeating it word for word — someone
+    #: who answered "what" is not helped by hearing the identical sentence again.
+    clarify: str = ""
     kind: Literal["text", "tel", "email", "date", "select", "textarea"] = "text"
     required: bool = False
     placeholder: str = ""
@@ -89,11 +101,23 @@ class Field_:
         depends_on, value = self.only_if
         return str(answers.get(depends_on) or "").strip() == value
 
-    def question(self, answers: dict[str, str]) -> str:
+    def _fill(self, text: str, answers: dict[str, str]) -> str:
         first = (answers.get("name") or "").split()
-        return (self.ask or f"What's your {self.label.lower()}?").format(
-            name=first[0] if first else "there"
+        return text.format(name=first[0] if first else "there")
+
+    def question(self, answers: dict[str, str]) -> str:
+        return self._fill(self.ask or f"What's your {self.label.lower()}?", answers)
+
+    def rephrased(self, answers: dict[str, str]) -> str:
+        """The plainer version, for when the first one did not land."""
+        if self.clarify:
+            return self._fill(self.clarify, answers)
+        return self._fill(
+            f"Sorry, that was my fault — {(self.ask or '').rstrip('?')}?", answers
         )
+
+    def recap_label(self) -> str:
+        return self.recap or self.label
 
 
 HOME_SIZES = (
@@ -126,6 +150,7 @@ _CONTACT = [
     # a chat agent can do.
     Field_("name", "Your name",
            ask="First off — what's your name?",
+           clarify="Just your name — so a manager knows who they're calling.",
            required=True, placeholder="Jordan Lee"),
     Field_("phone", "Phone", kind="tel",
            ask="Thanks {name}. What's the best number for a manager to reach you on?",
@@ -166,16 +191,22 @@ _EXTRAS = [
 # deciding it was not that important after all.
 
 _QUESTION = [
-    Field_("question", "Their question", kind="textarea",
+    Field_("question", "Their question", recap="Your question", kind="textarea",
            ask="So they answer the right thing — what would you like to know?",
+           clarify="What would you like the office to answer for you?",
            required=True, placeholder="What you'd like to know",
            extractable=True),
+    # "And who am I sending this over for?" was too indirect. Someone who does
+    # not read English every day hears it as another part of the sentence about
+    # the office, not as a question aimed at them — and answers "what".
     Field_("name", "Your name",
-           ask="And who am I sending this over for?",
+           ask="And what's your name?",
+           clarify="Just your name — so the office knows who they're getting back to.",
            required=True, placeholder="Jordan Lee"),
-    Field_("contact_method", "Get back to them by", kind="select",
-           ask="What's the best way for them to get back to you, {name} — phone or "
-               "email?",
+    Field_("contact_method", "Get back to them by", recap="Best way to reach you",
+           kind="select",
+           ask="Would you rather they call or email you, {name}?",
+           clarify="Phone or email — whichever is easier for you.",
            required=True, options=CONTACT_METHODS),
     Field_("phone", "Phone", kind="tel",
            ask="What's the best number to reach you on?",
@@ -188,7 +219,7 @@ _QUESTION = [
     # The "anything else?" the office would ask on the phone. It is the last
     # question rather than a throwaway line because a second question answered in
     # the same callback is one fewer reason for anybody to call twice.
-    Field_("anything_else", "Also asked", kind="textarea",
+    Field_("anything_else", "Also asked", recap="Anything else", kind="textarea",
            ask="Anything else you wanted to ask while I've got you? If not, just "
                "say no and I'll send this over.",
            placeholder="Anything else at all"),
@@ -415,6 +446,38 @@ def coerce_option(field: Field_, value: str) -> str:
     return near[0] if len(near) == 1 else value
 
 
+#: Whole answers that mean "I didn't follow the question" rather than answering
+#: it. Several languages on purpose — a good share of our customers are not
+#: reading English first, and they are the ones most likely to get an indirect
+#: question wrong. Matched WHOLE only: "Al" and "Bo" are real names, "what" is
+#: not an answer to anything.
+CONFUSED = {
+    # English
+    "what", "wat", "huh", "eh", "sorry", "pardon", "come again", "who", "why",
+    "wdym", "what do you mean", "i dont understand", "i don't understand",
+    "dont understand", "don't understand", "no idea what you mean", "meaning",
+    # Spanish
+    "que", "qué", "como", "cómo", "perdon", "perdón", "no entiendo", "mande",
+    # Russian
+    "что", "чего", "не понял", "не поняла", "не понимаю", "кто", "как",
+    # French / Portuguese
+    "quoi", "comment", "o que", "nao entendi", "não entendi",
+}
+
+
+def sounds_confused(value: str) -> bool:
+    """
+    True when the answer is the customer asking what we meant.
+
+    This is not validation — "what" is a perfectly well-formed string and would
+    sail through every check we have, and end up in an email as somebody's name.
+    It is worth catching because it is never a real answer and always a sign the
+    question was badly put.
+    """
+    cleaned = re.sub(r"[^\w' ]", "", str(value or "").lower(), flags=re.UNICODE).strip()
+    return cleaned in CONFUSED
+
+
 def validate_one(field: Field_, value: Any) -> str | None:
     """
     Check one answer. Returns a message to say back, or None if it's fine.
@@ -505,7 +568,7 @@ def summary_for(lead_type: str, answers: dict[str, Any]) -> list[dict[str, str]]
     for f in applicable_fields(lead_type, answers):
         value = str(answers.get(f.name) or "").strip()
         if value:
-            rows.append({"label": f.label, "value": value})
+            rows.append({"label": f.recap_label(), "value": value})
     return rows
 
 

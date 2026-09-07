@@ -312,3 +312,80 @@ def test_the_read_back_shows_what_the_office_will_actually_see():
 def test_the_read_back_is_json_serialisable():
     import json
     json.dumps(lead_form.summary_for("long_distance", GOOD))
+
+
+# ── Two audiences, two sets of words ──────────────────────────────────────────
+
+def test_the_customer_is_never_shown_the_office_wording():
+    """
+    Caught on a real phone. The read-back showed "Their question" to the person
+    who had just asked it — the office's column heading, leaking straight into
+    the customer's screen.
+    """
+    lead = {"question": "How much to haul away a couch", "name": "Nik",
+            "contact_method": "Phone", "phone": "(818) 505-4576"}
+    shown = [r["label"] for r in lead_form.summary_for("question", lead)]
+
+    assert "Your question" in shown
+    for office_only in ("Their question", "Get back to them by", "Also asked"):
+        assert office_only not in shown, f"customer sees {office_only!r}"
+
+
+def test_the_office_keeps_its_own_wording():
+    """The email is read by someone about a third party. 'Their' is right there."""
+    assert lead_form.label_for("question", "question") == "Their question"
+    assert lead_form.label_for("question", "contact_method") == "Get back to them by"
+
+
+def test_recap_falls_back_to_the_label_where_they_agree():
+    for lead_type in ("estimate", "long_distance", "question"):
+        for f in lead_form.fields_for(lead_type):
+            assert f.recap_label(), f"{lead_type}/{f.name} has no label at all"
+    phone = [f for f in lead_form.fields_for("estimate") if f.name == "phone"][0]
+    assert phone.recap_label() == phone.label
+
+
+def test_no_customer_facing_string_talks_about_them_in_the_third_person():
+    """The agent is on the team; 'they'/'their' about the customer is a slip."""
+    import re
+
+    banned = re.compile(r"\b(their|them|they)\b", re.I)
+    for lead_type in ("estimate", "long_distance", "question"):
+        for f in lead_form.fields_for(lead_type):
+            # `ask` may say "they" about the OFFICE, which is correct — the
+            # office is a third party to this conversation. Only the read-back
+            # labels name the customer's own answers.
+            assert not banned.search(f.recap_label()), \
+                f"{lead_type}/{f.name} read-back says {f.recap_label()!r}"
+
+
+# ── "What?" is not an answer ──────────────────────────────────────────────────
+
+@pytest.mark.parametrize(
+    "reply",
+    ["what", "What?", "huh", "sorry", "wdym", "que", "qué", "что", "не понял",
+     "quoi", "I don't understand"],
+)
+def test_confusion_is_recognised_in_several_languages(reply):
+    assert lead_form.sounds_confused(reply)
+
+
+@pytest.mark.parametrize("name", ["Nik", "Al", "Bo", "Li", "Jordan Lee", "Анна",
+                                  "What Street", "Que Nguyen"])
+def test_real_answers_are_not_mistaken_for_confusion(name):
+    """Short names are real names. Only the whole answer is matched."""
+    assert not lead_form.sounds_confused(name)
+
+
+def test_a_confused_answer_gets_a_plainer_question_not_the_same_one():
+    name = [f for f in lead_form.fields_for("question") if f.name == "name"][0]
+    assert name.rephrased({}) != name.question({})
+    assert "name" in name.rephrased({}).lower()
+
+
+def test_every_required_free_text_field_has_a_plainer_way_of_asking():
+    """The fallback is generic; the fields people actually stumble on shouldn't rely on it."""
+    for lead_type in ("estimate", "long_distance", "question"):
+        for f in lead_form.fields_for(lead_type):
+            if f.name in ("name", "question", "contact_method"):
+                assert f.clarify, f"{lead_type}/{f.name} has no plainer phrasing"

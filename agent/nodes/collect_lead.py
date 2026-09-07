@@ -152,6 +152,9 @@ def collect_lead(state: SupportState) -> Command[Literal["submit_lead", "__end__
 
             step += 1
             question = field.question(answers)
+            # Fires at most once per field. Someone whose actual surname trips
+            # the check should not be stuck in a loop being asked to clarify it.
+            clarified = False
             while True:
                 reply = _ask(
                     {
@@ -196,6 +199,16 @@ def collect_lead(state: SupportState) -> Command[Literal["submit_lead", "__end__
                 # Someone who types "email" at a question offering "Email" has
                 # answered it.
                 value = lead_form.coerce_option(field, value)
+
+                # "what" is a perfectly valid string and would pass every check
+                # we have — straight into an email as somebody's name. It is
+                # never an answer, and always a sign the question was badly put,
+                # so say it plainer rather than record it.
+                if not clarified and lead_form.sounds_confused(value):
+                    clarified = True
+                    question = field.rephrased(answers)
+                    logger.info("Lead form: rephrasing %s", field.name)
+                    continue
 
                 if _looks_like_a_question(value, field):
                     question = (
