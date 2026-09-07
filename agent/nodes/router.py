@@ -115,15 +115,28 @@ Read the message before it to see what for: if you offered to take a question to
 the office, it is **question**; if the estimate interview was starting, it is \
 **estimate**.
 
-**handoff** — they want something DONE to a specific existing booking, or they \
-have a complaint about a job we already did. The test is whether a person needs \
-to look their record up.
-  "I need to move my booking to Saturday"
-  "your guys scratched my table"
-  "I paid the deposit but never got a confirmation"
-  "can I talk to a human?"
+**handoff** — three shapes, and the first is the one people get wrong.
+
+  1. They want to BOOK. Not what it costs — they want a date held. We cannot do \
+that here: a date has to be checked against the calendar and held with a \
+deposit, and neither happens in this chat.
+     "I want to book a move"
+     "can I book you for the 20th?"
+     "let's get it scheduled"
+     "I'm ready to go ahead, what's next?"
+  2. Something DONE to a booking or bill that already exists. The test is \
+whether a person has to look their record up.
+     "I need to move my booking to Saturday"
+     "I paid the deposit but never got a confirmation"
+  3. A complaint about a job we already did, or they simply want a person.
+     "your guys scratched my table"
+     "can I talk to a human?"
 
 Rules:
+- Asking what it will COST is **estimate**. Asking to actually RESERVE a date is \
+**handoff**. "How much for my 2 bedroom on the 20th?" is a price question; "book \
+me in for the 20th" is a commitment nobody can make in this chat. When they \
+clearly want both, the booking wins — send them to the office.
 - A plain question is **knowledge**, whatever it is about. "how long do I wait?", \
 "when will someone call?", "what happens next?" are questions to be answered, \
 not requests to price a move. Only route to a lead lane when the customer is \

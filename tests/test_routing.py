@@ -135,3 +135,24 @@ def test_taking_someone_up_on_the_offer_is_its_own_lane():
     assert "**question**" in guidance
     assert "you just offered" in guidance
     assert "contact details on their own are never" in guidance
+
+
+# ── Booking is not an estimate ────────────────────────────────────────────────
+
+def test_wanting_to_book_is_described_as_handoff_not_estimate():
+    """
+    "I want to book a move" was opening the estimate interview. Nobody can hold
+    a date in this chat — it has to be checked against the calendar and held
+    with a deposit — so it goes to the office instead.
+    """
+    prompt = router.SYSTEM_PROMPT
+    assert "I want to book a move" in prompt
+    assert "Asking to actually RESERVE a date is" in prompt
+
+
+def test_the_handoff_reply_carries_both_ways_to_reach_us():
+    from agent.nodes import handoff
+    from services import config
+
+    assert config.COMPANY_PHONE in handoff.TASK
+    assert config.COMPANY_EMAIL in handoff.TASK

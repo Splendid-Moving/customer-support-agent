@@ -392,3 +392,12 @@ def test_the_attach_button_is_only_offered_at_the_photo_step():
     # ...and the one place is the photo branch.
     photos_branch = js[js.index('if (kind === "photos") {'):]
     assert "clip.hidden = false" in photos_branch[:200]
+
+
+def test_the_builder_badge_links_out_safely():
+    html = (web.STATIC / "index.html").read_text(encoding="utf-8")
+    assert 'href="https://simple-flow.co"' in html
+    assert "Built by Simple" in html
+    # target=_blank without noopener hands the new tab a handle on this one.
+    badge = html[html.index('href="https://simple-flow.co"'):][:220]
+    assert 'rel="noopener noreferrer"' in badge

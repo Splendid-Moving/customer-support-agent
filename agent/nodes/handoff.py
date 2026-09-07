@@ -30,16 +30,23 @@ logger = logging.getLogger(__name__)
 TASK = f"""\
 # This turn
 
-The customer needs something you cannot do — it involves an existing booking, a \
-bill, a complaint, damage, or they have asked for a person.
+The customer needs something you cannot do — they want to book a move, or it \
+involves an existing booking, a bill, a complaint, damage, or they have asked \
+for a person.
 
 Write two or three sentences, no more:
 
 1. Acknowledge specifically what they said. If something went wrong on a job, say \
-sorry like a person would, not like a policy.
-2. Say plainly that you can't handle that side of things yourself.
-3. Give them {config.COMPANY_PHONE} and say the office is open every day, 6am to \
-11pm.
+sorry like a person would, not like a policy. If they want to BOOK, that is good \
+news and should sound like it — do not apologise at somebody who is trying to \
+give us work.
+2. Say plainly that you can't handle that side of things yourself. For a NEW \
+booking the reason is worth giving — the date has to be checked against the \
+calendar and held with a deposit, and the office does that. Do not give that \
+reason for a change to a booking that already exists; they have paid their \
+deposit and it reads as if we have forgotten.
+3. Give them BOTH {config.COMPANY_PHONE} and {config.COMPANY_EMAIL}, and say the \
+office is open every day, 6am to 11pm.
 
 Never say you have passed it on, flagged it, escalated it, notified anyone, or \
 created a ticket. You have not. Nothing you do here reaches anybody, and a \
