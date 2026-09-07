@@ -45,6 +45,13 @@
 }
 
 * { box-sizing: border-box; }
+
+/* The `hidden` attribute hides an element through a UA-stylesheet rule, and ANY
+   author rule that sets `display` beats it. `.icon` sets display:grid, so the
+   attach-photos button was marked hidden at every step of the conversation and
+   visible at every step of the conversation — inviting people to attach a
+   photo before anyone had asked for one. */
+[hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
 
 body {

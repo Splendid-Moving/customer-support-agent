@@ -359,3 +359,36 @@ def test_every_opening_suggestion_is_something_the_knowledge_base_answers():
         }.get(chip)
         assert topic, f"chip {chip!r} has no declared topic in this test"
         assert topic in kb, f"chip {chip!r} asks about {topic!r}, missing from knowledge/"
+
+
+def test_hidden_elements_are_actually_hidden():
+    """
+    `hidden` is a UA-stylesheet rule and any author `display` beats it. `.icon`
+    sets display:grid, so the attach-photos button was marked hidden at every
+    step of the conversation and visible at every step of it — inviting people
+    to attach a photo before anyone had asked for one.
+    """
+    import re
+
+    css = (web.STATIC / "index.html").read_text(encoding="utf-8")
+
+    rule = re.search(r"\[hidden\]\s*\{([^}]*)\}", css)
+    assert rule, "no [hidden] rule — the attach button will show at every step"
+    assert "display" in rule.group(1) and "!important" in rule.group(1)
+
+    # Anything toggled with `el.hidden` must be covered by that rule, which only
+    # holds while it stays !important.
+    assert 'id="clip"' in css and "hidden>" in css
+
+
+def test_the_attach_button_is_only_offered_at_the_photo_step():
+    """The JS half of the same guarantee."""
+    js = (web.STATIC / "index.html").read_text(encoding="utf-8")
+    shown = js.count("clip.hidden = false")
+    hidden = js.count("clip.hidden = true")
+    assert shown == 1, "the attach button is revealed in more than one place"
+    assert hidden >= 1
+
+    # ...and the one place is the photo branch.
+    photos_branch = js[js.index('if (kind === "photos") {'):]
+    assert "clip.hidden = false" in photos_branch[:200]
