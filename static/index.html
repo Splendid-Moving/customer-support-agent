@@ -252,12 +252,37 @@ header.bar {
   padding: .25rem .55rem; background: var(--bg);
 }
 
-/* Answered. It stays on screen as part of the transcript, but nothing in
-   it is clickable any more — otherwise an option from three questions ago
-   is still live. */
-.qcard--done { opacity: .62; }
-.qcard--done .qcard__row { cursor: default; pointer-events: none; }
-.qcard--done .qcard__aside { display: none; }
+/* The slot the questions move through.
+
+   The interview used to stack a card per question down the transcript, so
+   by question seven the thing being asked was above the fold and what was
+   on screen was a wall of things already answered. One card in one place
+   asks one question, and answering it brings the next one in. What was
+   said is not lost — the read-back at the end is the record, and it is the
+   only version of it anyone needs to check. */
+.slot { position: relative; margin-bottom: .6rem; }
+.slot:empty { display: none; }
+.slot .qcard {
+  margin-bottom: 0;
+  max-height: 58vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.qcard--in { animation: card-in .34s cubic-bezier(.22,.9,.28,1) both; }
+.qcard--out {
+  position: absolute; inset: 0;
+  animation: card-out .26s ease both;
+  pointer-events: none;
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateX(34px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes card-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateX(-34px); }
+}
 
 /* The read-back before anything is sent. Given a surface of its own —
    it is the one thing on the page the customer is asked to check rather
@@ -460,6 +485,9 @@ footer.composer {
   </main>
 
   <footer class="composer">
+    <!-- The interview happens here, not in the transcript. One card, held
+         above the composer, that each question moves through in turn. -->
+    <div class="slot" id="slot" aria-live="polite"></div>
     <div class="assist" id="assist"></div>
     <div class="box" id="box">
       <textarea id="input" rows="1" placeholder="Ask about your move…"
@@ -501,6 +529,7 @@ footer.composer {
 const el = (id) => document.getElementById(id);
 const thread = el("thread"), input = el("input"), sendBtn = el("send");
 const assist = el("assist"), clip = el("clip"), picker = el("picker"), rail = el("rail");
+const slot = el("slot");
 
 /* Deliberately NOT persisted. A reload starts a fresh conversation.
    The thread id used to live in localStorage and outlive the page, which meant
@@ -511,7 +540,6 @@ const assist = el("assist"), clip = el("clip"), picker = el("picker"), rail = el
 let threadId = "";
 let busy = false;
 let asking = null;      // the question the agent is currently waiting on
-let liveCard = null;    // its card in the thread, until it is answered
 let photos = [];        // [{id, url}] for the photo step
 
 /* ── Rendering ─────────────────────────────────────────────── */
@@ -608,9 +636,8 @@ async function exchange(payload, echo) {
   if (busy) return;
   busy = true;
   asking = null;
-  // Whatever was on screen has now been answered — or superseded by the
-  // customer typing something else entirely. Either way it is history.
-  if (liveCard) { liveCard.classList.add("qcard--done"); liveCard = null; }
+  // The card stays put while the server thinks. `showCard` swaps it when the
+  // next question arrives; `clearSlot` takes it away if none does.
   progress(0, 0);
   if (echo) bubble("me", echo);
   setComposer(null);
@@ -637,6 +664,9 @@ async function exchange(payload, echo) {
       if (live) live.remove();
       openQuestion(evt.ask);
     } else if (evt.reply) {
+      // No question came back, so the interview is over — sent, cancelled, or
+      // never running in the first place.
+      clearSlot();
       // Corrected text: either nothing was streamed, or what was streamed
       // failed the voice/pricing check and has been rewritten.
       if (live) live.textContent = evt.reply;
@@ -656,19 +686,54 @@ function dropCaret(row) { const c = row && row.querySelector(".caret"); if (c) c
 /* ── The interview ─────────────────────────────────────────── */
 
 function openQuestion(ask) {
+  // The agent's own line still belongs in the conversation. The question does not.
   if (ask.opening) bubble("them", ask.opening);
+  stripHello();
 
   if (ask.type === "confirm") {
-    // The read-back is already a surface of its own, and it is a summary
-    // rather than a question. It keeps its own shape.
+    // The read-back is not a question, it is the record — the only place the
+    // answers appear now that each one is replaced by the next. It goes in the
+    // transcript, where it can be as long as it needs to be and scrolls with
+    // the page. Held in the slot it was capped at 58vh and quietly cut off
+    // halfway down the one screen the customer is asked to check.
+    clearSlot();
     bubble("them", ask.message);
-    recap(ask);
+    thread.appendChild(recap(ask));
+    scroll();
   } else {
-    questionCard(ask);
+    showCard(questionCard(ask));
   }
 
   progress(ask.step, ask.total);
   asking = ask;
+}
+
+/**
+ * Put a card in the slot, moving the one that was there out of the way.
+ *
+ * The outgoing card is taken out of the flow before it animates, so the two
+ * never push each other around mid-swap. The timeout is the belt to the
+ * animationend braces: with animations disabled the event never fires, and a
+ * card left in the slot would sit behind the next one forever.
+ */
+function showCard(card) {
+  const leaving = slot.firstElementChild;
+  if (leaving) {
+    leaving.classList.add("qcard--out");
+    leaving.addEventListener("animationend", () => leaving.remove(), { once: true });
+    setTimeout(() => leaving.remove(), 400);
+  }
+  card.classList.add("qcard--in");
+  slot.appendChild(card);
+  scroll();
+}
+
+/** The interview is over, one way or another. */
+function clearSlot() {
+  const leaving = slot.firstElementChild;
+  if (!leaving) return;
+  leaving.classList.add("qcard--out");
+  setTimeout(() => leaving.remove(), 400);
 }
 
 /**
@@ -679,7 +744,6 @@ function openQuestion(ask) {
  * and any answer that can be given by tapping.
  */
 function questionCard(ask) {
-  stripHello();
   const field = ask.field || null;
   const ui = ask.ui || {};
   const t = (key, english) => ui[key] || english;
@@ -694,7 +758,10 @@ function questionCard(ask) {
   question.textContent = ask.message;
   head.appendChild(question);
 
-  if (ask.step && ask.total) {
+  // Not on the read-back. It is a review of what has been answered, not one of
+  // the questions — numbering it says "Question 10 of 10" over a card that
+  // asked nothing, and makes the photo step look like it never happened.
+  if (ask.step && ask.total && ask.type !== "confirm") {
     const count = document.createElement("span");
     count.className = "qcard__count";
     count.textContent = ask.step_label || ask.step + " / " + ask.total;
@@ -736,7 +803,7 @@ function questionCard(ask) {
     const labels = field.option_labels || field.options;
     field.options.forEach((option, i) => {
       const label = labels[i] || option;
-      row(label, { index: String(i + 1), onClick: () => answer({ answer: option }, label) });
+      row(label, { index: String(i + 1), onClick: () => answer({ answer: option }) });
     });
     // The message box never goes away, and this says so.
     row(t("something_else", "Something else"), {
@@ -745,7 +812,7 @@ function questionCard(ask) {
       onClick: (e) => {
         // The Skip pill sits inside the row, so which half was tapped matters.
         if (ask.skippable && e.target.classList.contains("qcard__aside")) {
-          answer({ skip: true }, t("skip", "Skip"));
+          answer({ skip: true });
         } else {
           input.focus();
         }
@@ -772,7 +839,7 @@ function questionCard(ask) {
 
     const confirm = row(t("use_date", "Use this date"), {
       badge: false,
-      onClick: () => { if (day.value) answer({ answer: day.value }, prettyDate(day.value)); },
+      onClick: () => { if (day.value) answer({ answer: day.value }); },
     });
     confirm.hidden = true;
 
@@ -785,17 +852,15 @@ function questionCard(ask) {
     });
 
     const notSure = t("not_sure", "Not sure yet");
-    row(notSure, { badge: false, quiet: true, onClick: () => answer({ skip: true }, notSure) });
+    row(notSure, { badge: false, quiet: true, onClick: () => answer({ skip: true }) });
   } else if (ask.skippable && ask.type !== "photos") {
     // Photos keep their skip beside the thumbnails, where the picker is, and
     // the date step's skip is "Not sure yet" — a second, blanker one next to it
     // is two ways to say the same thing.
-    row(t("skip", "Skip"), { quiet: true, onClick: () => answer({ skip: true }, t("skip", "Skip")) });
+    row(t("skip", "Skip"), { quiet: true, onClick: () => answer({ skip: true }) });
   }
 
-  thread.appendChild(card);
-  liveCard = card;
-  scroll();
+  return card;
 }
 
 /** The answers laid out to be checked, not read. */
@@ -822,8 +887,7 @@ function recap(ask) {
     card.appendChild(pics);
   }
 
-  thread.appendChild(card);
-  scroll();
+  return card;
 }
 
 /**
@@ -867,8 +931,8 @@ function setComposer(ask) {
 
   if (kind === "confirm") {
     const send = t("send", "Send it over"), over = t("restart", "Start over");
-    assist.appendChild(button(send, () => answer({ confirmed: true }, send)));
-    assist.appendChild(button(over, () => answer({ restart: true }, over), true));
+    assist.appendChild(button(send, () => answer({ confirmed: true })));
+    assist.appendChild(button(over, () => answer({ restart: true }), true));
     input.placeholder = t("or_change", "Or tell me what to change…");
     sync();
     return;
@@ -879,14 +943,13 @@ function setComposer(ask) {
     renderShots();
     if (photos.some((p) => p.id)) {
       assist.appendChild(button(t("send_photos", "Send these"), () => {
-        answer({ photo_ids: photos.filter((p) => p.id).map((p) => p.id) },
-               t("send_photos", "Send these"));
+        answer({ photo_ids: photos.filter((p) => p.id).map((p) => p.id) });
       }));
     } else {
       assist.appendChild(button(t("add_photos", "Add photos"), () => picker.click()));
     }
     const later = t("skip_photos", "Skip for now");
-    assist.appendChild(button(later, () => answer({ photo_ids: [] }, later), true));
+    assist.appendChild(button(later, () => answer({ photo_ids: [] }), true));
   }
 
   sync();
@@ -907,9 +970,18 @@ function prettyDate(iso) {
     { weekday: "short", month: "long", day: "numeric" });
 }
 
-function answer(reply, echo) {
+/**
+ * Answer whatever is on the card.
+ *
+ * Deliberately no echo into the transcript. The question is replaced by the
+ * next one rather than scrolling away above it, and an answer left behind on
+ * its own — "90026", "Nik" — is a column of orphaned fragments with nothing to
+ * say what they were. The read-back at the end is where the answers are
+ * checked, and it shows every one of them with its label.
+ */
+function answer(reply) {
   if (reply.photo_ids) photos = [];
-  exchange({ reply }, echo);
+  exchange({ reply });
 }
 
 /* ── Composer wiring ───────────────────────────────────────── */
@@ -927,8 +999,10 @@ function submitTyped() {
   sync();
   // While a question is open, typing IS the answer — same protocol, so the
   // server never mistakes it for a new conversation.
-  if (asking && asking.type === "confirm") answer({ restart: true }, text);
-  else if (asking) answer({ answer: text }, text);
+  if (asking && asking.type === "confirm") answer({ restart: true });
+  else if (asking) answer({ answer: text });
+  // Outside the interview this is an ordinary message, and it does belong in
+  // the transcript.
   else exchange({ message: text }, text);
 }
 
