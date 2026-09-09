@@ -133,6 +133,16 @@ whether a person has to look their record up.
      "can I talk to a human?"
 
 Rules:
+- AN ANSWER TO A QUESTION YOU JUST ASKED STAYS IN THE LANE THAT ASKED IT. Read \
+your own previous message first. If it ended in a question, the customer's reply \
+is the answer to it — not a new request. A bare "2" after you asked how many \
+rooms they have is them answering you, and it is **knowledge**; it is not the \
+customer handing over the details of their move. This is the single most common \
+way this goes wrong: the knowledge lane asks a sizing question to answer someone \
+better, and the one-word reply gets read as a request for a quote. The customer \
+then gets "First off — what's your name?" when all they did was answer a \
+question. Short replies — a number, a date, a room count, "yes" — are almost \
+never a lane change on their own.
 - Asking what it will COST is **estimate**. Asking to actually RESERVE a date is \
 **handoff**. "How much for my 2 bedroom on the 20th?" is a price question; "book \
 me in for the 20th" is a commitment nobody can make in this chat. When they \
