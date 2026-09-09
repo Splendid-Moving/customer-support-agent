@@ -5,7 +5,7 @@
 
 ## What are your local hourly rates?
 
-2 movers: $115/hr cash, $125/hr card. 3 movers: $145/hr cash, $155/hr card. 4 movers: $180/hr cash, $190/hr card. Rate includes truck, fuel, and moving equipment. 3-hour minimum applies.
+2 movers: $115/hr cash, $125/hr card. 3 movers: $145/hr cash, $155/hr card. 4 movers: $180/hr cash, $190/hr card. Rate includes truck and moving equipment. A gas fee is charged separately. 3-hour minimum applies.
 
 HANDLING: Ask how many movers before quoting
 
@@ -34,3 +34,9 @@ HANDLING: Escalate to office for quote
 Contact our office directly to get rates for additional movers or trucks.
 
 HANDLING: Escalate to office
+
+## Is there a gas fee?
+
+Yes, there is a gas fee on local moves, charged on top of the hourly rate. It's usually between $30 and $100 depending on the move - the office confirms the exact amount.
+
+HANDLING: Escalate the exact amount to office

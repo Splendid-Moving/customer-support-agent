@@ -47,7 +47,7 @@ Typically: 2 movers for a studio or 1-bedroom, 3 movers for a 2-bedroom or small
 
 ## Are there any hidden fees (stairs, long carries, fuel, etc.)?
 
-The only additional fees beyond the base rate are: Double Drive Time (if the distance between your two locations is over 15 miles), extra packing materials like bubble wrap or boxes, and excessively heavy items (typically 150+ lbs) - contact our office to check if that applies to you.
+The additional fees beyond the base rate are: a gas fee, Double Drive Time (if the distance between your two locations is over 15 miles), extra packing materials like bubble wrap or boxes, and excessively heavy items (typically 150+ lbs) - contact our office to check if that applies to you.
 
 ## Do you offer flat rates?
 
@@ -74,7 +74,3 @@ Yes, the team foreman will call or text you before arriving.
 ## Do I need to empty out my drawers before the move?
 
 Yes, we strongly recommend it - especially for large or heavy furniture pieces, and if stairs are involved.
-
-## Can you dispose of unwanted/trash items?
-
-Our movers can help you leave your unwanted furniture by your curbside. Alternatively, they can take it to a dumpster, which will be done at an additional cost. Confirm exact fees with the office. 
