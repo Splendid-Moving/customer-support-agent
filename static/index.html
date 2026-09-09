@@ -101,15 +101,6 @@ header.bar {
 }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: #34a853; }
 
-/* One pip per question, so the end of this is visible from the start. */
-.pips { display: inline-flex; gap: 3px; margin-right: .15rem; }
-.pip {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--line);
-  transition: background .3s ease, transform .3s ease;
-}
-.pip.done { background: var(--accent); opacity: .45; }
-.pip.now { background: var(--accent); transform: scale(1.35); }
 
 .bar .grow { flex: 1; }
 
@@ -192,6 +183,69 @@ header.bar {
   border-radius: 16px 16px 5px 16px;
   font-size: .96rem;
 }
+
+/* The question, as a card in the conversation rather than a line in the
+   header. The count belongs here: "how many more of these are there" is
+   the question someone has three answers in, and it is worth nothing in
+   a corner they are not looking at.
+
+   Choices are rows rather than chips because a row can be read down at a
+   glance and stays legible at six options on a phone, where a wrapped
+   line of pills does not. */
+.qcard {
+  max-width: 60ch;
+  margin-bottom: 1.6rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.qcard__head {
+  display: flex; align-items: baseline; gap: 1rem;
+  padding: .85rem .95rem;
+}
+.qcard__head + .qcard__row { border-top: 1px solid var(--line); }
+.qcard__q { flex: 1; font-size: .98rem; line-height: 1.45; white-space: pre-wrap; }
+.qcard__count { font-size: .78rem; color: var(--faint); white-space: nowrap; }
+
+.qcard__row {
+  display: flex; align-items: center; gap: .7rem;
+  width: 100%;
+  padding: .65rem .95rem;
+  border: 0;
+  background: none; color: inherit;
+  font: inherit; font-size: .93rem; text-align: left;
+  cursor: pointer; min-height: 48px;
+  transition: background .15s;
+}
+.qcard__row + .qcard__row { border-top: 1px solid var(--line); }
+.qcard__row:hover { background: var(--accent-bg); }
+.qcard__row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Indexes the list. The whole row is the target — this is a label, not a
+   keyboard shortcut, because the composer is focused and a digit typed
+   there has to stay a digit. */
+.qcard__n {
+  display: grid; place-items: center;
+  width: 26px; height: 26px; flex-shrink: 0;
+  border-radius: 7px;
+  background: var(--bg);
+  font-size: .78rem; color: var(--faint);
+}
+.qcard__row--quiet { color: var(--muted); }
+.qcard__aside {
+  margin-left: auto;
+  font-size: .8rem; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: .25rem .55rem; background: var(--bg);
+}
+
+/* Answered. It stays on screen as part of the transcript, but nothing in
+   it is clickable any more — otherwise an option from three questions ago
+   is still live. */
+.qcard--done { opacity: .62; }
+.qcard--done .qcard__row { cursor: default; pointer-events: none; }
+.qcard--done .qcard__aside { display: none; }
 
 /* The read-back before anything is sent. Given a surface of its own —
    it is the one thing on the page the customer is asked to check rather
@@ -364,11 +418,7 @@ footer.composer {
     <div class="avatar" aria-hidden="true">{{AGENT_INITIAL}}</div>
     <div>
       <div class="who-name">{{AGENT_NAME}} · Splendid Moving</div>
-      <div class="who-sub" id="whosub"><span class="dot"></span> Replies instantly</div>
-      <!-- Swaps in for "Replies instantly" during the interview. Someone three
-           questions into being asked things wants to know how many are left,
-           and a 2px bar only answers that approximately. -->
-      <div class="who-sub" id="steps" hidden></div>
+      <div class="who-sub"><span class="dot"></span> Replies instantly</div>
     </div>
     <div class="grow"></div>
     <button class="linkbtn" id="restart" type="button">Start over</button>
@@ -439,7 +489,6 @@ footer.composer {
 const el = (id) => document.getElementById(id);
 const thread = el("thread"), input = el("input"), sendBtn = el("send");
 const assist = el("assist"), clip = el("clip"), picker = el("picker"), rail = el("rail");
-const whosub = el("whosub"), steps = el("steps");
 
 /* Deliberately NOT persisted. A reload starts a fresh conversation.
    The thread id used to live in localStorage and outlive the page, which meant
@@ -450,6 +499,7 @@ const whosub = el("whosub"), steps = el("steps");
 let threadId = "";
 let busy = false;
 let asking = null;      // the question the agent is currently waiting on
+let liveCard = null;    // its card in the thread, until it is answered
 let photos = [];        // [{id, url}] for the photo step
 
 /* ── Rendering ─────────────────────────────────────────────── */
@@ -487,37 +537,14 @@ function scroll() {
 }
 
 /**
- * Where we are in the interview: the rail, the pips, and the count.
+ * The hairline across the top of the header.
  *
- * `label` arrives already built and already translated — the numbers are
- * substituted server-side because where they belong in the sentence is a
- * property of the language, not of this function.
+ * Ambient only. The number a customer actually wants — "3 of 9" — is on the
+ * question card, where they are already looking; up here it was a corner
+ * nobody reads.
  */
-function progress(step, total, label) {
+function progress(step, total) {
   rail.style.width = step && total ? Math.round((step / total) * 100) + "%" : "0";
-
-  if (!step || !total) {
-    steps.hidden = true;
-    whosub.hidden = false;
-    return;
-  }
-
-  whosub.hidden = true;
-  steps.hidden = false;
-  steps.textContent = "";
-
-  const pips = document.createElement("span");
-  pips.className = "pips";
-  for (let i = 1; i <= total; i++) {
-    const pip = document.createElement("i");
-    pip.className = "pip" + (i < step ? " done" : i === step ? " now" : "");
-    pips.appendChild(pip);
-  }
-
-  const text = document.createElement("span");
-  text.textContent = label || step + " / " + total;
-
-  steps.append(pips, text);
 }
 
 /* ── Talking to the server ─────────────────────────────────── */
@@ -569,6 +596,9 @@ async function exchange(payload, echo) {
   if (busy) return;
   busy = true;
   asking = null;
+  // Whatever was on screen has now been answered — or superseded by the
+  // customer typing something else entirely. Either way it is history.
+  if (liveCard) { liveCard.classList.add("qcard--done"); liveCard = null; }
   progress(0, 0);
   if (echo) bubble("me", echo);
   setComposer(null);
@@ -615,10 +645,107 @@ function dropCaret(row) { const c = row && row.querySelector(".caret"); if (c) c
 
 function openQuestion(ask) {
   if (ask.opening) bubble("them", ask.opening);
-  bubble("them", ask.message);
-  if (ask.type === "confirm") recap(ask);
-  progress(ask.step, ask.total, ask.step_label);
+
+  if (ask.type === "confirm") {
+    // The read-back is already a surface of its own, and it is a summary
+    // rather than a question. It keeps its own shape.
+    bubble("them", ask.message);
+    recap(ask);
+  } else {
+    questionCard(ask);
+  }
+
+  progress(ask.step, ask.total);
   asking = ask;
+}
+
+/**
+ * One question, as a card.
+ *
+ * Everything that needs the keyboard or the file picker stays at the bottom of
+ * the screen where the composer is — the card holds the question, the count,
+ * and any answer that can be given by tapping.
+ */
+function questionCard(ask) {
+  stripHello();
+  const field = ask.field || null;
+  const ui = ask.ui || {};
+  const t = (key, english) => ui[key] || english;
+
+  const card = document.createElement("div");
+  card.className = "qcard reveal";
+
+  const head = document.createElement("div");
+  head.className = "qcard__head";
+  const question = document.createElement("div");
+  question.className = "qcard__q";
+  question.textContent = ask.message;
+  head.appendChild(question);
+
+  if (ask.step && ask.total) {
+    const count = document.createElement("span");
+    count.className = "qcard__count";
+    count.textContent = ask.step_label || ask.step + " / " + ask.total;
+    head.appendChild(count);
+  }
+  card.appendChild(head);
+
+  const row = (label, opts = {}) => {
+    const r = document.createElement("button");
+    r.type = "button";
+    r.className = "qcard__row" + (opts.quiet ? " qcard__row--quiet" : "");
+
+    const badge = document.createElement("span");
+    badge.className = "qcard__n";
+    badge.textContent = opts.index || (opts.quiet ? "✎" : "");
+    r.appendChild(badge);
+
+    const text = document.createElement("span");
+    text.textContent = label;
+    r.appendChild(text);
+
+    if (opts.aside) {
+      const aside = document.createElement("span");
+      aside.className = "qcard__aside";
+      aside.textContent = opts.aside;
+      r.appendChild(aside);
+    }
+    r.addEventListener("click", opts.onClick);
+    card.appendChild(r);
+    return r;
+  };
+
+  if (field && field.kind === "select" && field.options && field.options.length) {
+    // Shows the customer's language, sends back the English value Python
+    // matches against.
+    const labels = field.option_labels || field.options;
+    field.options.forEach((option, i) => {
+      const label = labels[i] || option;
+      row(label, { index: String(i + 1), onClick: () => answer({ answer: option }, label) });
+    });
+    // The message box never goes away, and this says so.
+    row(t("something_else", "Something else"), {
+      quiet: true,
+      aside: ask.skippable ? t("skip", "Skip") : "",
+      onClick: (e) => {
+        // The Skip pill sits inside the row, so which half was tapped matters.
+        if (ask.skippable && e.target.classList.contains("qcard__aside")) {
+          answer({ skip: true }, t("skip", "Skip"));
+        } else {
+          input.focus();
+        }
+      },
+    });
+  } else if (ask.skippable && ask.type !== "photos" && (!field || field.kind !== "date")) {
+    // Photos keep their skip beside the thumbnails, where the picker is, and
+    // the date step's skip is "Not sure yet" — a second, blanker one next to it
+    // is two ways to say the same thing.
+    row(t("skip", "Skip"), { quiet: true, onClick: () => answer({ skip: true }, t("skip", "Skip")) });
+  }
+
+  thread.appendChild(card);
+  liveCard = card;
+  scroll();
 }
 
 /** The answers laid out to be checked, not read. */
@@ -678,20 +805,15 @@ function setComposer(ask) {
 
   input.placeholder =
     kind === "photos" ? t("or_type", "Or type something…")
+    // The choices are on the card; this box is the way past them.
+    : kind === "select" ? t("or_reply", "Or reply directly…")
     : field && field.placeholder ? field.placeholder
     : ask ? t("type_answer", "Type your answer…")
     : "Ask about your move…";
 
-  if (kind === "select" && field.options) {
-    // The button SHOWS the customer's language and SENDS the English value.
-    // `options` is what Python matches against; translating what goes back
-    // would fail every check the answer has to pass.
-    const labels = field.option_labels || field.options;
-    field.options.forEach((opt, i) => {
-      const label = labels[i] || opt;
-      assist.appendChild(button(label, () => answer({ answer: opt }, label)));
-    });
-  }
+  // Choices and Skip live on the question card now, not down here. Only the
+  // things that need this end of the screen — the date picker, the file
+  // picker, the read-back's buttons — are still rendered into `assist`.
 
   if (kind === "date") {
     const day = document.createElement("input");
@@ -729,9 +851,6 @@ function setComposer(ask) {
     }
     const later = t("skip_photos", "Skip for now");
     assist.appendChild(button(later, () => answer({ photo_ids: [] }, later), true));
-  } else if (ask && ask.skippable) {
-    const skip = t("skip", "Skip");
-    assist.appendChild(button(skip, () => answer({ skip: true }, skip), true));
   }
 
   sync();

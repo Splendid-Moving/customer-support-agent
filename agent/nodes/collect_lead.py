@@ -97,6 +97,9 @@ UI_LINES = {
     "type_answer": "Type your answer…",
     "or_type": "Or type something…",
     "or_change": "Or tell me what to change…",
+    # On a card of choices: the message box is still there, and this says so.
+    "or_reply": "Or reply directly…",
+    "something_else": "Something else",
 }
 
 #: The roadmap line above the question. Numbers rather than a bare bar, because
