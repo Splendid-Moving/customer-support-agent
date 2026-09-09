@@ -247,7 +247,9 @@ def test_a_second_question_does_not_offer_to_take_details_we_have():
          "contact_method": "Phone", "phone": "(818) 505-4576"},
     )
     assert ask["field"]["name"] == "anything_else"
-    assert ask["total"] == 2
+    # One question — "anything else?" — and then the read-back, which is not
+    # counted because it is a review rather than something being asked.
+    assert ask["total"] == 1
     assert "still got your details" in ask["opening"]
 
 

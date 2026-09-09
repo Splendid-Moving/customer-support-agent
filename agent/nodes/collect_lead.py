@@ -100,6 +100,8 @@ UI_LINES = {
     # On a card of choices: the message box is still there, and this says so.
     "or_reply": "Or reply directly…",
     "something_else": "Something else",
+    "pick_date": "Pick a date",
+    "use_date": "Use this date",
 }
 
 #: The roadmap line above the question. Numbers rather than a bare bar, because
@@ -234,7 +236,12 @@ def collect_lead(state: SupportState) -> Command[Literal["submit_lead", "__end__
         # Recomputed on every pass rather than once, because an either/or answer
         # decides what is still to come: someone who asks to be phoned is never
         # asked for an email address.
-        total = lead_form.steps_remaining(lead_type, answers) + int(wants_photos) + 1
+        #
+        # The read-back is NOT counted. It is a review of what they have already
+        # said, not another thing being asked of them, and counting it makes the
+        # form read one question longer than it is on the one screen where the
+        # number matters most — the first.
+        total = lead_form.steps_remaining(lead_type, answers) + int(wants_photos)
         step = 0
 
         for field in lead_form.fields_for(lead_type):
@@ -363,7 +370,10 @@ def collect_lead(state: SupportState) -> Command[Literal["submit_lead", "__end__
         # The read-back. Nothing has left the building yet, and this is the last
         # moment it can be corrected — after this a person acts on it, and a
         # digit wrong in the phone number is a job nobody can call back about.
-        step += 1
+        #
+        # Held at `total` rather than stepped past it: the questions are done,
+        # so the rail reads full.
+        step = total
         cleaned = lead_form.clean(lead_type, answers)
         reply = _ask(
             {

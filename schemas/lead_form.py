@@ -368,7 +368,11 @@ def applicable_fields(lead_type: str, answers: dict[str, Any]) -> list[Field_]:
 
 def steps_remaining(lead_type: str, answers: dict[str, Any]) -> int:
     """
-    How many questions are still to come, for the progress rail.
+    How many questions are still to come.
+
+    Questions only — the photo step and the read-back are added by the caller,
+    which knows whether this form has photos and knows the read-back is a review
+    rather than a question.
 
     An either/or branch counts ONCE while it is still open. Someone who has not
     yet said whether they want a call or an email will be asked for exactly one

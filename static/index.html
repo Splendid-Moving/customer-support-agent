@@ -233,6 +233,18 @@ header.bar {
   font-size: .78rem; color: var(--faint);
 }
 .qcard__row--quiet { color: var(--muted); }
+
+/* The platform date control, invisible and covering its whole row: the row
+   shows our own label, and a tap anywhere on it opens the native picker.
+   An <input type="date"> left to render itself is an unlabelled empty pill
+   on iOS, which is the other half of what was wrong here. */
+.qcard__row--date { position: relative; }
+.qcard__date {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  margin: 0; padding: 0; border: 0;
+  opacity: 0; font: inherit; cursor: pointer;
+}
 .qcard__aside {
   margin-left: auto;
   font-size: .8rem; color: var(--muted);
@@ -695,12 +707,15 @@ function questionCard(ask) {
     r.type = "button";
     r.className = "qcard__row" + (opts.quiet ? " qcard__row--quiet" : "");
 
-    const badge = document.createElement("span");
-    badge.className = "qcard__n";
-    badge.textContent = opts.index || (opts.quiet ? "✎" : "");
-    r.appendChild(badge);
+    if (opts.badge !== false) {
+      const badge = document.createElement("span");
+      badge.className = "qcard__n";
+      badge.textContent = opts.index || (opts.quiet ? "✎" : "");
+      r.appendChild(badge);
+    }
 
     const text = document.createElement("span");
+    text.className = "qcard__label";
     text.textContent = label;
     r.appendChild(text);
 
@@ -736,7 +751,42 @@ function questionCard(ask) {
         }
       },
     });
-  } else if (ask.skippable && ask.type !== "photos" && (!field || field.kind !== "date")) {
+  } else if (field && field.kind === "date") {
+    /*
+     * Two taps, deliberately.
+     *
+     * This used to be a bare <input type="date"> above the composer that
+     * submitted on `change`. On iOS that renders as an empty pill, and the
+     * wheel fires `change` the moment it settles on a value — so opening the
+     * picker at all answered the question, with whatever date the wheel
+     * happened to land on. Picking and confirming are now separate.
+     */
+    const pick = row(t("pick_date", "Pick a date"), { badge: false, onClick: () => {} });
+    pick.classList.add("qcard__row--date");
+
+    const day = document.createElement("input");
+    day.type = "date";
+    day.className = "qcard__date";
+    day.min = new Date().toISOString().slice(0, 10);
+    pick.appendChild(day);
+
+    const confirm = row(t("use_date", "Use this date"), {
+      badge: false,
+      onClick: () => { if (day.value) answer({ answer: day.value }, prettyDate(day.value)); },
+    });
+    confirm.hidden = true;
+
+    day.addEventListener("change", () => {
+      // Never answer from in here. See above.
+      if (!day.value) return;
+      pick.querySelector(".qcard__label").textContent = prettyDate(day.value);
+      confirm.hidden = false;
+      scroll();
+    });
+
+    const notSure = t("not_sure", "Not sure yet");
+    row(notSure, { badge: false, quiet: true, onClick: () => answer({ skip: true }, notSure) });
+  } else if (ask.skippable && ask.type !== "photos") {
     // Photos keep their skip beside the thumbnails, where the picker is, and
     // the date step's skip is "Not sure yet" — a second, blanker one next to it
     // is two ways to say the same thing.
@@ -814,20 +864,6 @@ function setComposer(ask) {
   // Choices and Skip live on the question card now, not down here. Only the
   // things that need this end of the screen — the date picker, the file
   // picker, the read-back's buttons — are still rendered into `assist`.
-
-  if (kind === "date") {
-    const day = document.createElement("input");
-    day.type = "date";
-    day.className = "opt";
-    day.min = new Date().toISOString().slice(0, 10);
-    day.style.minWidth = "10rem";
-    day.addEventListener("change", () => {
-      if (day.value) answer({ answer: day.value }, prettyDate(day.value));
-    });
-    assist.appendChild(day);
-    const notSure = t("not_sure", "Not sure yet");
-    assist.appendChild(button(notSure, () => answer({ skip: true }, notSure), true));
-  }
 
   if (kind === "confirm") {
     const send = t("send", "Send it over"), over = t("restart", "Start over");
