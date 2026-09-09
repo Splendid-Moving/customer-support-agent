@@ -269,12 +269,6 @@ def status():
     }
 
 
-@app.post("/api/reset")
-def reset():
-    """Start a fresh conversation. The old thread stays in the database."""
-    return {"thread_id": str(uuid.uuid4())}
-
-
 @app.post("/api/upload")
 async def upload(
     request: Request,

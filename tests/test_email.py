@@ -14,8 +14,8 @@ LEAD = {
     "name": "Jordan Lee",
     "phone": "(323) 555-0142",
     "email": "jordan@example.com",
-    "from_address": "1200 Sunset Blvd",
-    "to_address": "88 Ocean Ave",
+    "from_zip": "90026",
+    "to_zip": "90401",
     "home_size": "2 bedrooms",
     "move_date": "2026-10-14",
 }
@@ -44,7 +44,7 @@ def test_every_answer_appears_in_the_email():
 
 def test_fields_are_labelled_the_way_the_form_asked_them():
     html = email.render("estimate", LEAD)
-    assert lead_form.label_for("estimate", "from_address") in html
+    assert lead_form.label_for("estimate", "from_zip") in html
 
 
 def test_long_distance_carries_a_banner_so_nobody_quotes_it_hourly():

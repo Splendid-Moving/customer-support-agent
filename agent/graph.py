@@ -11,10 +11,10 @@ Graph wiring. The whole topology lives here, readable top to bottom.
              |        ^              |
              |        +-- rewrite ---+
              |
-             +--> prefill --> collect_lead  [PAUSES per question]
-             |                     |
-             |                     +--> submit_lead --> END
-             |                     +-- cancelled -----> END
+             +--> prefill --> translate --> collect_lead  [PAUSES per question]
+             |                                    |
+             |                                    +--> submit_lead --> END
+             |                                    +-- cancelled -----> END
              |
              +--> handoff ----------------------------------> END
 
@@ -46,6 +46,7 @@ from agent.nodes import prefill as prefill_node
 from agent.nodes import refuse as refuse_node
 from agent.nodes import router as router_node
 from agent.nodes import submit_lead as submit_lead_node
+from agent.nodes import translate as translate_node
 from agent.state import SupportState
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -72,6 +73,7 @@ def build_graph(checkpointer=None):
     builder.add_node("answer_check", answer_check_node.check)
 
     builder.add_node("prefill", prefill_node.prefill)
+    builder.add_node("translate", translate_node.translate)
     builder.add_node("collect_lead", collect_lead_node.collect_lead)
     builder.add_node("submit_lead", submit_lead_node.submit_lead)
 
@@ -88,7 +90,11 @@ def build_graph(checkpointer=None):
         router_node.pick_lane,
         {"knowledge": "knowledge", "prefill": "prefill", "handoff": "handoff"},
     )
-    builder.add_edge("prefill", "collect_lead")
+    # Both of these run exactly once, before the interview starts pausing. They
+    # are out here rather than inside collect_lead because that node re-runs from
+    # the top on every answer, and a model call in it would fire once a question.
+    builder.add_edge("prefill", "translate")
+    builder.add_edge("translate", "collect_lead")
 
     # The rewrite loop. answer_check either commits the draft as a message and
     # ends, or sends it back with one specific complaint. It gives up on its own

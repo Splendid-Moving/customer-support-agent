@@ -77,9 +77,9 @@ router ─┬─► knowledge ──► answer_check ─────────
         │        ▲              │
         │        └── rewrite ───┘
         │
-        ├─► prefill ──► collect_lead ──► submit_lead ──► END
-        │                    ⏸
-        │              pauses once per question
+        ├─► prefill ──► translate ──► collect_lead ──► submit_lead ──► END
+        │                                    ⏸
+        │                              pauses once per question
         │
         └─► handoff ───────────────────────────────────► END
 ```
@@ -234,9 +234,24 @@ it in. In the common case they are identical and nothing is swapped.
 
 **The interview is Python, not a model.** `collect_lead` walks a fixed list of
 fields. A model-run interview asks better questions and can loop forever, and
-whatever it decides a field contains lands in an email a manager acts on. The one
-model call in that lane is `prefill`, which only fills fields the customer can
-see are wrong — never name, phone or email.
+whatever it decides a field contains lands in an email a manager acts on. The two
+model calls in that lane both run BEFORE the questions start, because
+`collect_lead` re-runs from the top on every answer and anything inside it would
+fire once per question: `prefill`, which only fills fields the customer can see
+are wrong — never name, phone or email — and `translate`.
+
+**The interview speaks the customer's language; the email doesn't.** Sam has
+always replied in whatever language it was written to, but the interview's
+questions are fixed strings, so a Russian conversation used to hit "First off —
+what's your name?". `translate` now takes every string the customer will read,
+translates the wording in one call, and hands `collect_lead` a phrasebook. The
+structure is untouched: same fields, same order, same validation. What is
+deliberately NOT translated is the email — a manager reads the lead in English
+however the chat went — and the stored value of a multiple-choice answer, where
+the button shows the customer's language and sends back the English string that
+Python matches against. A phrase the translator misses falls back to English, and
+a translation that loses a `{placeholder}` is discarded rather than allowed to
+crash the interview.
 
 **Nothing the extractor invents reaches a manager.** The question it writes for
 the `question` lane is checked in Python against the words actually used in the

@@ -76,6 +76,18 @@ class SupportState(TypedDict, total=False):
     #: correction, not our guess.
     known_contact: dict[str, str]
 
+    #: ISO 639-1 code of the language the CUSTOMER is writing in, as of the last
+    #: time a lead started. "en" means the interview runs on its English originals.
+    lang: str
+
+    #: {english string: the same string in `lang`}, for the interview only.
+    #:
+    #: Keyed by the English text itself rather than by an id, so that every
+    #: customer-facing string passes through one lookup with the original as its
+    #: own fallback — a string nobody translated comes out in English instead of
+    #: coming out as a key name.
+    phrasebook: dict[str, str]
+
     #: The knowledge lane's answer BEFORE answer_check has passed it. It is not
     #: appended to `messages` until it clears the check, so a draft that breaks
     #: the voice rules is never part of the conversation the customer sees.

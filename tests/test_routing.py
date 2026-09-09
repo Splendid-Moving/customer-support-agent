@@ -48,8 +48,11 @@ def test_nothing_reaches_a_lane_without_passing_the_guard():
     for lane in ("knowledge", "prefill", "handoff"):
         inbound = {s for s, t in edges if t == lane}
         assert inbound <= {"router", "answer_check"}, f"{lane} reachable from {inbound}"
-    # collect_lead is one step further in, behind prefill.
-    assert {s for s, t in edges if t == "collect_lead"} == {"prefill"}
+    # collect_lead is two steps further in: prefill, then translate. Both run
+    # once, before the interview starts pausing — and the chain is asserted link
+    # by link so a new node cannot be spliced in front of the form unnoticed.
+    assert {s for s, t in edges if t == "translate"} == {"prefill"}
+    assert {s for s, t in edges if t == "collect_lead"} == {"translate"}
 
 
 def test_the_email_is_not_reachable_from_the_router():

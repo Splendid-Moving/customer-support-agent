@@ -79,18 +79,23 @@ def _start_question(thread: str, prefilled: dict):
     """
     A question interview, paused on its first question.
 
-    Entered directly, skipping the model-backed guard, router and prefill —
-    everything asserted below is Python, and a test that needs a model to tell
-    it whether a branch works is a test that costs money and passes for the
-    wrong reasons.
+    Entered directly, skipping every model-backed node in front of it — guard,
+    router, prefill and translate. Everything asserted below is Python, and a
+    test that needs a model to tell it whether a branch works is a test that
+    costs money and passes for the wrong reasons.
+
+    Entering `as_node="translate"` rather than `as_node="prefill"` is what skips
+    the last of those, and the empty phrasebook is what the English interview
+    runs on.
     """
     graph = build_graph(checkpointer=InMemorySaver())
     cfg = {"configurable": {"thread_id": thread}}
     graph.invoke({"intent": "question", "messages": []}, cfg, interrupt_before=["guard"])
     graph.update_state(
         cfg,
-        {"lead_type": "question", "lead": prefilled, "known_contact": {}},
-        as_node="prefill",
+        {"lead_type": "question", "lead": prefilled, "known_contact": {},
+         "lang": "en", "phrasebook": {}},
+        as_node="translate",
     )
     graph.invoke(None, cfg)
     return graph, cfg, web._pending_interrupt(graph, cfg)
@@ -247,6 +252,35 @@ def test_a_second_question_does_not_offer_to_take_details_we_have():
 
 
 # ── The guard does not run while the interview is paused ───────────────────────
+
+# ── The resume protocol ───────────────────────────────────────────────────────
+
+def test_the_resume_protocol_decides_by_what_the_server_is_doing():
+    """
+    Not by what the browser thinks it is sending. A message arriving while the
+    graph is paused is an answer; the same message on a fresh thread is a new
+    turn.
+
+    Worth pinning down, because a reloaded page used to land in the first case
+    while showing the customer the second: it drew the welcome screen over a
+    thread the server was still asking a question on, and the chip they tapped
+    was recorded as the answer. The rule below is right — the page was wrong,
+    and a reload now starts a new thread instead.
+    """
+    from langgraph.types import Command
+
+    graph, cfg, _ = _start_question("q-protocol", {"question": "Haul-away fee?"})
+    turn = web.Turn(thread_id="q-protocol", message="I'd like an estimate")
+
+    graph_input, _ = web._graph_input(graph, cfg, turn)
+    assert isinstance(graph_input, Command), "paused: the message is an answer"
+    assert graph_input.resume == {"answer": "I'd like an estimate"}
+
+    fresh = build_graph(checkpointer=InMemorySaver())
+    fresh_cfg = {"configurable": {"thread_id": "q-fresh"}}
+    graph_input, _ = web._graph_input(fresh, fresh_cfg, turn)
+    assert not isinstance(graph_input, Command), "not paused: it is a new message"
+
 
 def test_an_interview_answer_cannot_be_unboundedly_long():
     """

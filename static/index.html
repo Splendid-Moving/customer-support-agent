@@ -101,6 +101,16 @@ header.bar {
 }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: #34a853; }
 
+/* One pip per question, so the end of this is visible from the start. */
+.pips { display: inline-flex; gap: 3px; margin-right: .15rem; }
+.pip {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--line);
+  transition: background .3s ease, transform .3s ease;
+}
+.pip.done { background: var(--accent); opacity: .45; }
+.pip.now { background: var(--accent); transform: scale(1.35); }
+
 .bar .grow { flex: 1; }
 
 .linkbtn {
@@ -354,7 +364,11 @@ footer.composer {
     <div class="avatar" aria-hidden="true">{{AGENT_INITIAL}}</div>
     <div>
       <div class="who-name">{{AGENT_NAME}} · Splendid Moving</div>
-      <div class="who-sub"><span class="dot"></span> Replies instantly</div>
+      <div class="who-sub" id="whosub"><span class="dot"></span> Replies instantly</div>
+      <!-- Swaps in for "Replies instantly" during the interview. Someone three
+           questions into being asked things wants to know how many are left,
+           and a 2px bar only answers that approximately. -->
+      <div class="who-sub" id="steps" hidden></div>
     </div>
     <div class="grow"></div>
     <button class="linkbtn" id="restart" type="button">Start over</button>
@@ -422,12 +436,18 @@ footer.composer {
       their ids ever travel through the conversation.
    ───────────────────────────────────────────────────────────── */
 
-const KEY = "splendid-thread";
 const el = (id) => document.getElementById(id);
 const thread = el("thread"), input = el("input"), sendBtn = el("send");
 const assist = el("assist"), clip = el("clip"), picker = el("picker"), rail = el("rail");
+const whosub = el("whosub"), steps = el("steps");
 
-let threadId = localStorage.getItem(KEY) || "";
+/* Deliberately NOT persisted. A reload starts a fresh conversation.
+   The thread id used to live in localStorage and outlive the page, which meant
+   a reloaded page drew the welcome screen while the server was still waiting on
+   a question — and the first chip tapped was sent as the ANSWER to that unseen
+   question. The interview is short enough that starting over costs less than
+   any of the ways of putting someone back where they were. */
+let threadId = "";
 let busy = false;
 let asking = null;      // the question the agent is currently waiting on
 let photos = [];        // [{id, url}] for the photo step
@@ -466,8 +486,38 @@ function scroll() {
   requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
 }
 
-function progress(step, total) {
+/**
+ * Where we are in the interview: the rail, the pips, and the count.
+ *
+ * `label` arrives already built and already translated — the numbers are
+ * substituted server-side because where they belong in the sentence is a
+ * property of the language, not of this function.
+ */
+function progress(step, total, label) {
   rail.style.width = step && total ? Math.round((step / total) * 100) + "%" : "0";
+
+  if (!step || !total) {
+    steps.hidden = true;
+    whosub.hidden = false;
+    return;
+  }
+
+  whosub.hidden = true;
+  steps.hidden = false;
+  steps.textContent = "";
+
+  const pips = document.createElement("span");
+  pips.className = "pips";
+  for (let i = 1; i <= total; i++) {
+    const pip = document.createElement("i");
+    pip.className = "pip" + (i < step ? " done" : i === step ? " now" : "");
+    pips.appendChild(pip);
+  }
+
+  const text = document.createElement("span");
+  text.textContent = label || step + " / " + total;
+
+  steps.append(pips, text);
 }
 
 /* ── Talking to the server ─────────────────────────────────── */
@@ -502,8 +552,9 @@ async function post(payload, onToken) {
       let evt; try { evt = JSON.parse(raw.slice(5)); } catch (_) { continue; }
 
       if (evt.event === "start") {
+        // Held for this page view only, so the rest of the conversation lands
+        // on the same thread.
         threadId = evt.thread_id;
-        localStorage.setItem(KEY, threadId);
       } else if (evt.event === "token") {
         onToken(evt.text);
       } else {
@@ -566,7 +617,7 @@ function openQuestion(ask) {
   if (ask.opening) bubble("them", ask.opening);
   bubble("them", ask.message);
   if (ask.type === "confirm") recap(ask);
-  progress(ask.step, ask.total);
+  progress(ask.step, ask.total, ask.step_label);
   asking = ask;
 }
 
@@ -588,8 +639,9 @@ function recap(ask) {
   if (ask.photo_count) {
     const pics = document.createElement("div");
     pics.className = "pics";
-    pics.textContent =
-      ask.photo_count === 1 ? "1 photo attached" : ask.photo_count + " photos attached";
+    // Built server-side: pluralisation is a per-language rule and this is the
+    // one string where getting it wrong is visible.
+    pics.textContent = ask.photos_line || ask.photo_count + " photos attached";
     card.appendChild(pics);
   }
 
@@ -619,15 +671,25 @@ function setComposer(ask) {
   const field = (ask && ask.field) || null;
   const kind = !ask ? "chat" : field ? field.kind : ask.type;
 
+  // Server-supplied and already translated, with the English as the fallback
+  // for a plain chat turn where there is no interview running.
+  const ui = (ask && ask.ui) || {};
+  const t = (key, english) => ui[key] || english;
+
   input.placeholder =
-    kind === "photos" ? "Or type something…"
+    kind === "photos" ? t("or_type", "Or type something…")
     : field && field.placeholder ? field.placeholder
-    : ask ? "Type your answer…"
+    : ask ? t("type_answer", "Type your answer…")
     : "Ask about your move…";
 
   if (kind === "select" && field.options) {
-    field.options.forEach((opt) => {
-      assist.appendChild(button(opt, () => answer({ answer: opt }, opt)));
+    // The button SHOWS the customer's language and SENDS the English value.
+    // `options` is what Python matches against; translating what goes back
+    // would fail every check the answer has to pass.
+    const labels = field.option_labels || field.options;
+    field.options.forEach((opt, i) => {
+      const label = labels[i] || opt;
+      assist.appendChild(button(label, () => answer({ answer: opt }, label)));
     });
   }
 
@@ -641,13 +703,15 @@ function setComposer(ask) {
       if (day.value) answer({ answer: day.value }, prettyDate(day.value));
     });
     assist.appendChild(day);
-    assist.appendChild(button("Not sure yet", () => answer({ skip: true }, "Not sure yet"), true));
+    const notSure = t("not_sure", "Not sure yet");
+    assist.appendChild(button(notSure, () => answer({ skip: true }, notSure), true));
   }
 
   if (kind === "confirm") {
-    assist.appendChild(button("Send it over", () => answer({ confirmed: true }, "Send it over")));
-    assist.appendChild(button("Start over", () => answer({ restart: true }, "Start over"), true));
-    input.placeholder = "Or tell me what to change…";
+    const send = t("send", "Send it over"), over = t("restart", "Start over");
+    assist.appendChild(button(send, () => answer({ confirmed: true }, send)));
+    assist.appendChild(button(over, () => answer({ restart: true }, over), true));
+    input.placeholder = t("or_change", "Or tell me what to change…");
     sync();
     return;
   }
@@ -656,16 +720,18 @@ function setComposer(ask) {
     clip.hidden = false;
     renderShots();
     if (photos.some((p) => p.id)) {
-      assist.appendChild(button("Send these", () => {
+      assist.appendChild(button(t("send_photos", "Send these"), () => {
         answer({ photo_ids: photos.filter((p) => p.id).map((p) => p.id) },
-               photos.length + (photos.length === 1 ? " photo" : " photos"));
+               t("send_photos", "Send these"));
       }));
     } else {
-      assist.appendChild(button("Add photos", () => picker.click()));
+      assist.appendChild(button(t("add_photos", "Add photos"), () => picker.click()));
     }
-    assist.appendChild(button("Skip for now", () => answer({ photo_ids: [] }, "Skip for now"), true));
+    const later = t("skip_photos", "Skip for now");
+    assist.appendChild(button(later, () => answer({ photo_ids: [] }, later), true));
   } else if (ask && ask.skippable) {
-    assist.appendChild(button("Skip", () => answer({ skip: true }, "Skip"), true));
+    const skip = t("skip", "Skip");
+    assist.appendChild(button(skip, () => answer({ skip: true }, skip), true));
   }
 
   sync();
@@ -725,11 +791,8 @@ picker.addEventListener("change", () => {
 document.querySelectorAll(".chip").forEach((c) =>
   c.addEventListener("click", () => exchange({ message: c.textContent.trim() }, c.textContent.trim())));
 
-el("restart").addEventListener("click", async () => {
-  const res = await fetch("/api/reset", { method: "POST" });
-  localStorage.setItem(KEY, (await res.json()).thread_id);
-  location.reload();
-});
+// A reload IS a fresh conversation now, so this needs nothing else.
+el("restart").addEventListener("click", () => location.reload());
 
 /* ── Photos ────────────────────────────────────────────────── */
 
@@ -786,6 +849,7 @@ async function addPhotos(files) {
 }
 
 /* ── Boot ──────────────────────────────────────────────────── */
+
 sync();
 if (window.matchMedia("(min-width: 640px)").matches) input.focus({ preventScroll: true });
 </script>

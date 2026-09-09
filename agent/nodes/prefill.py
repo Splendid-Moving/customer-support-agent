@@ -22,7 +22,7 @@ WHAT IT WILL NOT TOUCH
 Name, phone and email are never extracted, however clearly they appear. Those
 three are the entire value of the lead: a manager with a mis-heard phone number
 has nothing. They are always asked and always read back by the customer's own
-typing. Everything else — addresses, size, date — is both easy for the customer
+typing. Everything else — zip codes, size, date — is both easy for the customer
 to correct and harmless for the office to have slightly wrong, because a human
 calls them anyway.
 
@@ -50,8 +50,17 @@ logger = logging.getLogger(__name__)
 class KnownMove(BaseModel):
     """Only what the customer actually said. Everything is optional."""
 
-    from_address: str = Field("", description="Where they are moving FROM, if stated.")
-    to_address: str = Field("", description="Where they are moving TO, if stated.")
+    from_zip: str = Field(
+        "",
+        description="The 5-digit US ZIP code they are moving FROM, but ONLY if "
+                    "they actually gave a zip. A neighbourhood or city name is "
+                    "not a zip — leave it empty rather than looking one up.",
+    )
+    to_zip: str = Field(
+        "",
+        description="The 5-digit US ZIP code they are moving TO, on the same "
+                    "terms. Empty unless they typed the digits.",
+    )
     move_date: str = Field("", description="Move date as YYYY-MM-DD, only if unambiguous.")
     home_size: str = Field("", description="Must be EXACTLY one of the listed options, or empty.")
 
@@ -81,7 +90,9 @@ Return a field ONLY if the customer stated it plainly. Leave it empty otherwise.
 next one still in the future.
 - home_size must be EXACTLY one of these strings, or empty:
 {sizes}
-- Addresses can be partial — "Silver Lake" is a useful answer, take it as given.
+- ZIP codes must be five digits the customer actually typed. Never convert a \
+place name into a zip, however sure you are: "Silver Lake" is a neighbourhood, \
+not 90026, and a guessed zip is a manager quoting the wrong drive time.
 
 An empty field costs one extra question. A wrong field ends up in an email a \
 manager acts on. When in doubt, leave it empty."""
@@ -265,7 +276,7 @@ def prefill(state: SupportState) -> dict:
         # customer is asked — one message, against a manager phoning someone
         # about a fridge they never mentioned.
         #
-        # Deliberately not applied to the addresses: those are a customer's own
+        # Deliberately not applied to the zip codes: those are a customer's own
         # place, obvious to them in the read-back, and a manager calls anyway.
         if name == "question" and (invented := ungrounded_terms(value, vocabulary)):
             logger.warning(

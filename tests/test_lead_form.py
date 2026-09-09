@@ -15,8 +15,8 @@ GOOD = {
     "name": "Jordan Lee",
     "phone": "(323) 555-0142",
     "email": "jordan@example.com",
-    "from_address": "1200 Sunset Blvd, Los Angeles",
-    "to_address": "88 Ocean Ave, Santa Monica",
+    "from_zip": "90026",
+    "to_zip": "90401",
     "home_size": "2 bedrooms",
 }
 
@@ -26,7 +26,7 @@ def test_a_complete_form_passes():
 
 
 def test_every_required_field_is_actually_required():
-    for name in ("name", "phone", "email", "from_address", "to_address", "home_size"):
+    for name in ("name", "phone", "email", "from_zip", "to_zip", "home_size"):
         missing = {k: v for k, v in GOOD.items() if k != name}
         assert name in lead_form.validate("estimate", missing), f"{name} was not required"
 

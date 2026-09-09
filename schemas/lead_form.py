@@ -67,7 +67,7 @@ class Field_:
     #: same thing more plainly rather than repeating it word for word — someone
     #: who answered "what" is not helped by hearing the identical sentence again.
     clarify: str = ""
-    kind: Literal["text", "tel", "email", "date", "select", "textarea"] = "text"
+    kind: Literal["text", "tel", "email", "date", "select", "textarea", "zip"] = "text"
     required: bool = False
     placeholder: str = ""
     help: str = ""
@@ -105,16 +105,43 @@ class Field_:
         first = (answers.get("name") or "").split()
         return text.format(name=first[0] if first else "there")
 
-    def question(self, answers: dict[str, str]) -> str:
-        return self._fill(self.ask or f"What's your {self.label.lower()}?", answers)
+    def question(self, answers: dict[str, str], tr=None) -> str:
+        """
+        The question as it is asked out loud.
 
-    def rephrased(self, answers: dict[str, str]) -> str:
+        `tr` translates the TEMPLATE, before `{name}` is filled in — the other
+        way round would hand the translator a customer's actual name to
+        translate, and "Спасибо, Джордан" is a name nobody typed.
+        """
+        text = self.ask or f"What's your {self.label.lower()}?"
+        return self._fill(tr(text) if tr else text, answers)
+
+    def rephrased(self, answers: dict[str, str], tr=None) -> str:
         """The plainer version, for when the first one did not land."""
         if self.clarify:
-            return self._fill(self.clarify, answers)
-        return self._fill(
-            f"Sorry, that was my fault — {(self.ask or '').rstrip('?')}?", answers
-        )
+            return self._fill(tr(self.clarify) if tr else self.clarify, answers)
+        fallback = f"Sorry, that was my fault — {(self.ask or '').rstrip('?')}?"
+        return self._fill(tr(fallback) if tr else fallback, answers)
+
+    def localized(self, tr) -> dict[str, Any]:
+        """
+        `to_json`, with everything the customer READS put through `tr`.
+
+        `label` is deliberately untouched: it heads a column in the email the
+        office reads, and that stays English however the chat went.
+
+        `options` are likewise left as they are, because they are matched against
+        HOME_SIZES in Python — the translated text rides alongside in
+        `option_labels`, and the browser shows one while sending back the other.
+        """
+        out = self.to_json()
+        for key in ("ask", "clarify", "placeholder", "help"):
+            if out.get(key):
+                out[key] = tr(out[key])
+        out["recap"] = tr(self.recap_label())
+        if self.options:
+            out["option_labels"] = [tr(o) for o in self.options]
+        return out
 
     def recap_label(self) -> str:
         return self.recap or self.label
@@ -160,9 +187,10 @@ _CONTACT = [
            required=True, placeholder="you@example.com"),
 ]
 
-_FROM = Field_("from_address", "Moving from",
-               ask="Where are we moving you from? Street and city is plenty.",
-               required=True, placeholder="Street, city", extractable=True)
+_FROM = Field_("from_zip", "Moving from (zip)", recap="Moving from", kind="zip",
+               ask="What's the zip code we're moving you out of?",
+               clarify="Just the five-digit zip code of the place you're leaving.",
+               required=True, placeholder="90026", extractable=True)
 
 _MOVE = [
     Field_("move_date", "Move date", kind="date",
@@ -236,9 +264,10 @@ FORMS: dict[str, dict[str, Any]] = {
         "fields": [
             *_CONTACT,
             _FROM,
-            Field_("to_address", "Moving to",
-                   ask="And where are we taking it?",
-                   required=True, placeholder="Street, city", extractable=True),
+            Field_("to_zip", "Moving to (zip)", recap="Moving to", kind="zip",
+                   ask="And the zip code we're taking it to?",
+                   clarify="Just the five-digit zip code of the new place.",
+                   required=True, placeholder="90291", extractable=True),
             *_MOVE,
             *_EXTRAS,
         ],
@@ -253,9 +282,10 @@ FORMS: dict[str, dict[str, Any]] = {
         "fields": [
             *_CONTACT,
             _FROM,
-            Field_("to_address", "Moving to",
-                   ask="And where are you heading? City and state is enough.",
-                   required=True, placeholder="City and state", extractable=True),
+            Field_("to_zip", "Moving to (zip)", recap="Moving to", kind="zip",
+                   ask="And the zip code you're heading to?",
+                   clarify="Just the five-digit zip code of where you're moving to.",
+                   required=True, placeholder="98101", extractable=True),
             *_MOVE,
             Field_("flexibility", "How firm is that date?", kind="select",
                    ask="How firm is that date?", options=FLEXIBILITY),
@@ -293,8 +323,17 @@ PHOTO_STEP = {
     "kind": "photos",
     "ask": (
         "Last thing, and it's the one that makes the biggest difference — can you "
-        "send a few photos of what's moving? A shot of each room is plenty. "
-        "Skip it if now's not a good time."
+        "send a few photos of what's moving? A shot of each room is plenty."
+    ),
+    #: Asked once more when they skip, and only once. Photos are the difference
+    #: between a manager quoting and a manager guessing, so it is worth one more
+    #: sentence saying why — but a customer who has said no twice has answered,
+    #: and a third ask is how a conversation ends without a lead in it.
+    "insist": (
+        "No problem — though it's worth thirty seconds if you can. A manager "
+        "quoting from photos is quoting; from \"2 bedrooms\" they're guessing, "
+        "and the number moves once they see it. Even a couple of quick shots "
+        "helps. Otherwise we'll go with what we've got."
     ),
 }
 
@@ -361,6 +400,9 @@ def steps_remaining(lead_type: str, answers: dict[str, Any]) -> int:
 # anyone posting to the endpoint directly — so it is never the one that counts.
 
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$")
+
+#: US zip. Five digits, and the +4 is accepted but not asked for.
+_ZIP = re.compile(r"^\d{5}(?:-\d{4})?$")
 
 
 def _digits(value: str) -> str:
@@ -478,6 +520,25 @@ def sounds_confused(value: str) -> bool:
     return cleaned in CONFUSED
 
 
+#: Everything validation can say back, in one place.
+#:
+#: Named rather than inline so `customer_strings` can enumerate them: every one
+#: of these is read by the customer, which means every one of them has to be
+#: available in their language. A literal buried in an `if` is a line that only
+#: ever comes out in English.
+MISSING = "I do need that one — what should I put down?"
+BAD_EMAIL = "That doesn't look quite like an email address — mind checking it?"
+BAD_PHONE = "That doesn't look like a full number — can I get all ten digits?"
+BAD_ZIP = "That's not quite a zip code — five digits is all I need."
+BAD_DATE = "I didn't catch that as a date — use the picker, or tell me you're not sure yet."
+PAST_DATE = "That date's already gone by — did you mean a later one?"
+BAD_OPTION = "Pick whichever of those is closest."
+
+VALIDATION_MESSAGES = (
+    MISSING, BAD_EMAIL, BAD_PHONE, BAD_ZIP, BAD_DATE, PAST_DATE, BAD_OPTION,
+)
+
+
 def validate_one(field: Field_, value: Any) -> str | None:
     """
     Check one answer. Returns a message to say back, or None if it's fine.
@@ -490,28 +551,60 @@ def validate_one(field: Field_, value: Any) -> str | None:
     text = str(value or "")
 
     if not text:
-        if field.required:
-            return "I do need that one — what should I put down?"
-        return None
+        return MISSING if field.required else None
 
     if field.kind == "email" and not _EMAIL.match(text):
-        return "That doesn't look quite like an email address — mind checking it?"
+        return BAD_EMAIL
 
     if field.kind == "tel" and len(_digits(text)) not in (10, 11):
-        return "That doesn't look like a full number — can I get all ten digits?"
+        return BAD_PHONE
+
+    if field.kind == "zip" and not _ZIP.match(text):
+        return BAD_ZIP
 
     if field.kind == "date":
         try:
             parsed = datetime.strptime(text, "%Y-%m-%d").date()
         except ValueError:
-            return "I didn't catch that as a date — use the picker, or tell me you're not sure yet."
+            return BAD_DATE
         if parsed < date.today():
-            return "That date's already gone by — did you mean a later one?"
+            return PAST_DATE
 
     if field.kind == "select" and field.options and text not in field.options:
-        return "Pick whichever of those is closest."
+        return BAD_OPTION
 
     return None
+
+
+def customer_strings(lead_type: str) -> list[str]:
+    """
+    Every English string this form says OUT LOUD to the customer.
+
+    The list a translator would be handed. Deliberately not `label` — that is the
+    column heading in the email the office reads, and it stays English however
+    the conversation went. Nor `name`, `options` values as stored, or anything
+    else the code compares against: those are identifiers that happen to be
+    words, and translating one breaks the match that uses it.
+    """
+    form = FORMS.get(lead_type) or FORMS["estimate"]
+    out: list[str] = [form["opening"]]
+    if form.get("opening_again"):
+        out.append(form["opening_again"])
+
+    for f in fields_for(lead_type):
+        out.extend(x for x in (f.ask, f.clarify, f.placeholder, f.help, f.recap_label()) if x)
+        # Option TEXT is shown on the buttons, so it needs translating; the value
+        # sent back is still the English one.
+        out.extend(f.options)
+
+    if wants_photos(lead_type):
+        out.append(str(PHOTO_STEP["ask"]))
+        out.append(str(PHOTO_STEP["insist"]))
+
+    out.extend(VALIDATION_MESSAGES)
+
+    # Order-preserving dedupe: several fields share a placeholder.
+    return list(dict.fromkeys(x for x in out if x))
 
 
 def validate(lead_type: str, submitted: dict[str, Any]) -> dict[str, str]:
@@ -551,12 +644,14 @@ def clean(lead_type: str, submitted: dict[str, Any]) -> dict[str, str]:
             continue
         if f.kind == "tel":
             value = normalize_phone(str(value))
+        if f.kind == "zip":
+            value = str(value).strip()[:5]
         # Belt and braces against a pathological paste in a free-text box.
         out[f.name] = str(value)[:1000]
     return out
 
 
-def summary_for(lead_type: str, answers: dict[str, Any]) -> list[dict[str, str]]:
+def summary_for(lead_type: str, answers: dict[str, Any], tr=None) -> list[dict[str, str]]:
     """
     The answers as label/value pairs, in the order they were asked.
 
@@ -568,7 +663,14 @@ def summary_for(lead_type: str, answers: dict[str, Any]) -> list[dict[str, str]]
     for f in applicable_fields(lead_type, answers):
         value = str(answers.get(f.name) or "").strip()
         if value:
-            rows.append({"label": f.recap_label(), "value": value})
+            label = f.recap_label()
+            # The VALUE is the customer's own typing and is never translated.
+            # Their answer to a multiple-choice question is ours, though, and
+            # showing them "2 bedrooms" in an otherwise Russian read-back is the
+            # one place the seam would show.
+            if tr and f.kind == "select" and value in f.options:
+                value = tr(value)
+            rows.append({"label": tr(label) if tr else label, "value": value})
     return rows
 
 

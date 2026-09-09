@@ -59,6 +59,15 @@ REGISTRY: dict[str, ModelSpec] = {
         openrouter="anthropic/claude-haiku-4.5",
         rationale="one structured read of the conversation, output is Python-validated",
     ),
+    # Translates the interview into the customer's language, once per lead and
+    # then cached. These are customer-visible questions that have to keep their
+    # register and their {name} placeholder, which is not a job for the cheap
+    # model — but it runs once, not per turn.
+    "translate": ModelSpec(
+        openai="gpt-4.1",
+        openrouter="anthropic/claude-sonnet-4.6",
+        rationale="customer-visible questions, once per lead, must keep tone and placeholders",
+    ),
     # Short in-persona lines: the refusal, the handoff, the form intro.
     "reply": ModelSpec(
         openai="gpt-4.1-mini",
