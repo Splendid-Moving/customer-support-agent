@@ -413,6 +413,19 @@ def _digits(value: str) -> str:
     return re.sub(r"\D", "", value)
 
 
+def tidy_name(value: str) -> str:
+    """
+    "nik" → "Nik", "MARIA GONZALEZ" → "Maria Gonzalez".
+
+    Only a name typed all one case is touched. Mixed case means they typed it
+    that way on purpose — "McDonald", "de la Cruz" — and .title() would break it.
+    """
+    name = " ".join(str(value or "").split())
+    if name == name.lower() or name == name.upper():
+        return name.title()
+    return name
+
+
 def normalize_phone(value: str) -> str:
     """
     US phone as (323) 555-0142, or the input unchanged if it isn't one.

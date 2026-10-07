@@ -378,7 +378,8 @@ def prefill(state: SupportState) -> dict:
         # date in the past or a size that is not on the list is dropped, and the
         # customer simply gets asked.
         if lead_form.validate_one(field, value) is None:
-            known[name] = str(value).strip()[:1000]
+            value = str(value).strip()[:1000]
+            known[name] = lead_form.tidy_name(value) if name == "name" else value
 
     if known:
         logger.info("Prefill: already knew %s", ", ".join(sorted(known)))

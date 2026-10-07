@@ -252,3 +252,15 @@ def test_contact_fields_are_now_extractable():
     for lead_type in ("estimate", "long_distance", "question"):
         names = {f.name for f in lead_form.fields_for(lead_type) if f.extractable}
         assert {"name", "phone", "email"} <= names, lead_type
+
+
+def test_a_name_from_the_chat_is_capitalised(monkeypatch):
+    assert _prefill(monkeypatch, NIK, name="nik")["name"] == "Nik"
+
+
+def test_a_name_typed_into_the_form_is_capitalised():
+    from tests.test_wiring import _resume, _start_question
+
+    graph, cfg, ask = _start_question("typed-lower", {"question": "Whether we do haul away."})
+    ask = _resume(graph, cfg, {"answer": "nik"})
+    assert "Nik" in ask["message"]

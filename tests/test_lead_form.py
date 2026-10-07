@@ -389,3 +389,29 @@ def test_every_required_free_text_field_has_a_plainer_way_of_asking():
         for f in lead_form.fields_for(lead_type):
             if f.name in ("name", "question", "contact_method"):
                 assert f.clarify, f"{lead_type}/{f.name} has no plainer phrasing"
+
+
+# ── Names are capitalised ──────────────────────────────────────────────────────
+
+def test_a_lowercase_name_is_capitalised():
+    assert lead_form.tidy_name("nik") == "Nik"
+    assert lead_form.tidy_name("maria gonzalez") == "Maria Gonzalez"
+
+
+def test_a_shouted_name_is_capitalised():
+    assert lead_form.tidy_name("MARIA GONZALEZ") == "Maria Gonzalez"
+
+
+def test_apostrophes_and_hyphens_capitalise_both_halves():
+    assert lead_form.tidy_name("sean o'brien") == "Sean O'Brien"
+    assert lead_form.tidy_name("mary-jane") == "Mary-Jane"
+
+
+def test_a_name_typed_in_mixed_case_is_left_as_they_wrote_it():
+    """They know how their own name is spelled better than .title() does."""
+    assert lead_form.tidy_name("Ronald McDonald") == "Ronald McDonald"
+    assert lead_form.tidy_name("Maria de la Cruz") == "Maria de la Cruz"
+
+
+def test_extra_spaces_are_squeezed():
+    assert lead_form.tidy_name("  nik   petrov ") == "Nik Petrov"

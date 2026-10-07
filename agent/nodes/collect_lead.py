@@ -325,6 +325,8 @@ def collect_lead(state: SupportState) -> Command[Literal["submit_lead", "__end__
                     continue
 
                 if value:
+                    if field.name == "name":
+                        value = lead_form.tidy_name(value)
                     answers[field.name] = value
                 break
 
