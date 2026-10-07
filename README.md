@@ -237,8 +237,16 @@ fields. A model-run interview asks better questions and can loop forever, and
 whatever it decides a field contains lands in an email a manager acts on. The two
 model calls in that lane both run BEFORE the questions start, because
 `collect_lead` re-runs from the top on every answer and anything inside it would
-fire once per question: `prefill`, which only fills fields the customer can see
-are wrong — never name, phone or email — and `translate`.
+fire once per question: `prefill`, which fills in what the customer already said
+in the chat so they aren't asked twice, and `translate`.
+
+**Name, phone and email are copied, never guessed.** Someone who opens with "hi
+my name is nik" isn't asked for their name again. But those three are the whole
+value of a lead, so `prefill` keeps one only if plain Python finds that exact
+value in a message the customer typed (`typed_by_customer`). Our own replies
+don't count, and a number made of a zip and a date run together doesn't either.
+Anything that fails the check is simply asked, and everything prefilled is still
+shown on the read-back before it is sent.
 
 **The interview speaks the customer's language; the email doesn't.** Sam has
 always replied in whatever language it was written to, but the interview's

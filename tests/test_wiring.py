@@ -75,7 +75,7 @@ def _resume(graph, cfg, reply):
     return web._pending_interrupt(graph, cfg)
 
 
-def _start_question(thread: str, prefilled: dict):
+def _start_question(thread: str, prefilled: dict, known_contact: dict | None = None):
     """
     A question interview, paused on its first question.
 
@@ -93,7 +93,7 @@ def _start_question(thread: str, prefilled: dict):
     graph.invoke({"intent": "question", "messages": []}, cfg, interrupt_before=["guard"])
     graph.update_state(
         cfg,
-        {"lead_type": "question", "lead": prefilled, "known_contact": {},
+        {"lead_type": "question", "lead": prefilled, "known_contact": known_contact or {},
          "lang": "en", "phrasebook": {}},
         as_node="translate",
     )
@@ -241,10 +241,9 @@ def test_a_second_question_does_not_offer_to_take_details_we_have():
     and the read-back — so an opening that says "let me take a couple of
     details" is describing questions that are never asked.
     """
+    contact = {"name": "Nick", "contact_method": "Phone", "phone": "(818) 505-4576"}
     _, _, ask = _start_question(
-        "q-again",
-        {"question": "Whether you move pool tables.", "name": "Nick",
-         "contact_method": "Phone", "phone": "(818) 505-4576"},
+        "q-again", {"question": "Whether you move pool tables.", **contact}, contact
     )
     assert ask["field"]["name"] == "anything_else"
     # One question — "anything else?" — and then the read-back, which is not

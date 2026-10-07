@@ -223,9 +223,11 @@ def collect_lead(state: SupportState) -> Command[Literal["submit_lead", "__end__
         opening = tr(spec["opening"])
         if restarted:
             opening = tr(RESTART_OPENING)
-        elif answers.get("name") and spec["opening_again"]:
+        elif (state.get("known_contact") or {}).get("name") and spec["opening_again"]:
             # Their contact details are already in hand from an earlier lead in
             # this same conversation, so the opening must not offer to take them.
+            # Checked on known_contact, not on a prefilled name: a name picked up
+            # from the chat is not "your details", and they still get asked.
             opening = tr(spec["opening_again"])
         elif answers and lead_type != "question":
             # Not on a question: the only thing prefilled there is the question

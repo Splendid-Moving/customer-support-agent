@@ -74,9 +74,9 @@ class Field_:
     options: tuple[str, ...] = ()
 
     #: Can be prefilled from what the customer already said in the conversation.
-    #: Only ever set on fields where a wrong guess is obvious to the customer and
-    #: harmless to the office. Never on name, phone or email — a mis-heard phone
-    #: number is a lead nobody can call back.
+    #: Name, phone and email included, but only when prefill can find the exact
+    #: value in something the customer typed — see `prefill.typed_by_customer`.
+    #: Everything prefilled is still shown on the read-back before it is sent.
     extractable: bool = False
 
     #: `(field_name, value)` — only ask this if that earlier answer came back
@@ -178,13 +178,13 @@ _CONTACT = [
     Field_("name", "Your name",
            ask="First off — what's your name?",
            clarify="Just your name — so a manager knows who they're calling.",
-           required=True, placeholder="Jordan Lee"),
+           required=True, extractable=True, placeholder="Jordan Lee"),
     Field_("phone", "Phone", kind="tel",
            ask="Thanks {name}. What's the best number for a manager to reach you on?",
-           required=True, placeholder="(323) 555-0142"),
+           required=True, extractable=True, placeholder="(323) 555-0142"),
     Field_("email", "Email", kind="email",
            ask="And an email address?",
-           required=True, placeholder="you@example.com"),
+           required=True, extractable=True, placeholder="you@example.com"),
 ]
 
 _FROM = Field_("from_zip", "Moving from (zip)", recap="Moving from", kind="zip",
@@ -230,7 +230,7 @@ _QUESTION = [
     Field_("name", "Your name",
            ask="And what's your name?",
            clarify="Just your name — so the office knows who they're getting back to.",
-           required=True, placeholder="Jordan Lee"),
+           required=True, extractable=True, placeholder="Jordan Lee"),
     Field_("contact_method", "Get back to them by", recap="Best way to reach you",
            kind="select",
            ask="Would you rather they call or email you, {name}?",
@@ -238,11 +238,11 @@ _QUESTION = [
            required=True, options=CONTACT_METHODS),
     Field_("phone", "Phone", kind="tel",
            ask="What's the best number to reach you on?",
-           required=True, placeholder="(323) 555-0142",
+           required=True, extractable=True, placeholder="(323) 555-0142",
            only_if=("contact_method", "Phone")),
     Field_("email", "Email", kind="email",
            ask="What's the best email address for you?",
-           required=True, placeholder="you@example.com",
+           required=True, extractable=True, placeholder="you@example.com",
            only_if=("contact_method", "Email")),
     # The "anything else?" the office would ask on the phone. It is the last
     # question rather than a throwaway line because a second question answered in

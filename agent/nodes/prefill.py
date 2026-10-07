@@ -17,20 +17,13 @@ TOP every time the graph resumes — so a model call up there would fire again o
 every single answer, roughly ten times per form, for an identical result. Out
 here it runs once.
 
-WHAT IT WILL NOT TOUCH
-----------------------
-Name, phone and email are never extracted, however clearly they appear. Those
-three are the entire value of the lead: a manager with a mis-heard phone number
-has nothing. They are always asked and always read back by the customer's own
-typing. Everything else — zip codes, size, date — is both easy for the customer
-to correct and harmless for the office to have slightly wrong, because a human
-calls them anyway.
-
-The one exception is `known_contact`: details this same customer already typed
-into an earlier form in this conversation and confirmed on the read-back. Those
-are not a guess, they are their own answer, and asking for a phone number ninety
-seconds after they gave it is exactly the kind of thing that makes a chat agent
-feel like a machine.
+NAME, PHONE AND EMAIL
+--------------------
+These are the whole value of the lead, so the model may only COPY them: each
+one is kept only if `typed_by_customer` finds that exact value in a message the
+customer wrote. Anything else is dropped and simply asked. Details confirmed on
+an earlier form in this conversation (`known_contact`) win over anything read
+from the chat.
 """
 
 import logging
@@ -47,7 +40,16 @@ from schemas import lead_form
 logger = logging.getLogger(__name__)
 
 
-class KnownMove(BaseModel):
+class KnownContact(BaseModel):
+    """The customer's own contact details, copied exactly as they typed them."""
+
+    name: str = Field("", description="The CUSTOMER'S own name, as they wrote it. "
+                      "Not anyone else they mention.")
+    phone: str = Field("", description="Their phone number, exactly as typed.")
+    email: str = Field("", description="Their email address, exactly as typed.")
+
+
+class KnownMove(KnownContact):
     """Only what the customer actually said. Everything is optional."""
 
     from_zip: str = Field(
@@ -65,7 +67,7 @@ class KnownMove(BaseModel):
     home_size: str = Field("", description="Must be EXACTLY one of the listed options, or empty.")
 
 
-class KnownQuestion(BaseModel):
+class KnownQuestion(KnownContact):
     """What the customer wants the office to answer, in one line."""
 
     question: str = Field(
@@ -73,6 +75,15 @@ class KnownQuestion(BaseModel):
         description="The customer's outstanding question, in one sentence, in "
                     "their own terms. Empty if it is not clear what they asked.",
     )
+
+
+#: Appended to both prompts. Shared so the two lanes cannot drift apart on it.
+_CONTACT_RULES = """
+
+Also copy the customer's own name, phone number and email address if they \
+typed them anywhere in the conversation — character for character, never \
+corrected, completed or reformatted. Only theirs: "my wife Sarah will be there" \
+is not the customer's name. Never take a name from the company's replies."""
 
 
 def _move_prompt() -> str:
@@ -95,7 +106,7 @@ place name into a zip, however sure you are: "Silver Lake" is a neighbourhood, \
 not 90026, and a guessed zip is a manager quoting the wrong drive time.
 
 An empty field costs one extra question. A wrong field ends up in an email a \
-manager acts on. When in doubt, leave it empty."""
+manager acts on. When in doubt, leave it empty.""" + _CONTACT_RULES
 
 
 def _question_prompt() -> str:
@@ -135,7 +146,7 @@ they want hauled away, then the question is about hauling away, full stop.
 question — a manager phones them and asks. An invented detail is not: they \
 phone up talking about the wrong thing, and the customer knows we were guessing.
 - If there is no clear question, return empty. They are simply asked, which \
-costs one message and is always better than a wrong one."""
+costs one message and is always better than a wrong one.""" + _CONTACT_RULES
 
 
 # ── Nothing invented reaches the office ────────────────────────────────────────
@@ -220,6 +231,76 @@ def ungrounded_terms(text: str, vocabulary: set[str]) -> list[str]:
     return found
 
 
+# ── Contact details: copied, never guessed ─────────────────────────────────────
+
+#: A run of digits with the separators people put in phone numbers. Separate
+#: numbers ("90026 to 90291") break the run at the word between them.
+_PHONE_RUN = re.compile(r"\+?\d[\d\s().-]{8,}\d")
+_NAME_WORD = re.compile(r"[^\W\d_]+(?:['’-][^\W\d_]+)*")
+
+
+def _customer_texts(messages) -> list[str]:
+    """What the CUSTOMER wrote. Our replies never count as evidence."""
+    texts = []
+    for message in messages:
+        if getattr(message, "type", "") != "human":
+            continue
+        content = message.content
+        if isinstance(content, list):
+            content = " ".join(
+                p.get("text", "") for p in content if isinstance(p, dict) and p.get("type") == "text"
+            )
+        texts.append(str(content))
+    return texts
+
+
+def _phone_digits(text: str) -> str:
+    digits = re.sub(r"\D", "", text)
+    return digits[1:] if len(digits) == 11 and digits.startswith("1") else digits
+
+
+def typed_by_customer(field: str, value: str, messages) -> bool:
+    """
+    Whether `value` for a contact field is something the customer actually typed.
+
+    Name: every word of it appears in their messages. Phone: the same ten digits
+    appear as one number in a message, however punctuated. Email: the address
+    appears whole. Case is ignored throughout.
+    """
+    texts = _customer_texts(messages)
+    value = str(value or "").strip()
+    if not value or not texts:
+        return False
+
+    if field == "name":
+        words = [w.casefold() for w in _NAME_WORD.findall(value)]
+        if not words or len(words) > 4 or lead_form.sounds_confused(value):
+            return False
+        said = {w.casefold() for t in texts for w in _NAME_WORD.findall(t)}
+        return all(w in said for w in words)
+
+    if field == "phone":
+        wanted = _phone_digits(value)
+        if len(wanted) != 10:
+            return False
+        return any(_phone_digits(run) == wanted for t in texts for run in _PHONE_RUN.findall(t))
+
+    if field == "email":
+        # A full stop after the address ends the sentence; one before more
+        # letters means the address carries on (".com" vs ".co").
+        exact = re.compile(rf"(?<![\w.+-]){re.escape(value)}(?![\w-]|\.[\w-])", re.IGNORECASE)
+        return any(exact.search(t) for t in texts)
+
+    return False
+
+
+#: The contact fields `typed_by_customer` knows how to check.
+_CONTACT_FIELDS = ("name", "phone", "email")
+
+#: How much of the conversation prefill reads. Generous — a name is usually said
+#: in the first message — but bounded, since the guard's turn limit is the real cap.
+MAX_MESSAGES = 40
+
 #: Which form each routed intent opens.
 _LEAD_TYPES = {"long_distance": "long_distance", "question": "question"}
 
@@ -250,7 +331,7 @@ def prefill(state: SupportState) -> dict:
 
     shape = KnownQuestion if lead_type == "question" else KnownMove
     prompt = _question_prompt() if lead_type == "question" else _move_prompt()
-    recent = state.get("messages", [])[-6:]
+    recent = state.get("messages", [])[-MAX_MESSAGES:]
 
     try:
         result = get_model("extract").with_structured_output(shape).invoke(
@@ -268,6 +349,14 @@ def prefill(state: SupportState) -> dict:
     for name, value in result.model_dump().items():
         field = by_name.get(name)
         if not field or not field.extractable or not value:
+            continue
+
+        # A detail they confirmed on an earlier form beats one read from chat.
+        if name in known:
+            continue
+
+        if name in _CONTACT_FIELDS and not typed_by_customer(name, value, recent):
+            logger.warning("Prefill: dropped a %s the customer never typed", name)
             continue
 
         # The one free-text field, and so the only one where a model can invent
