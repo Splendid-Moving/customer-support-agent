@@ -57,7 +57,7 @@ cost."""
 
 
 def handoff(state: SupportState) -> dict:
-    prompt = persona.system_prompt(extra=TASK)
+    prompt = persona.system_prompt(extra=TASK, spoken=bool(state.get("spoken")))
     response = get_model("reply").invoke(
         [SystemMessage(content=prompt), *state["messages"][-4:]]
     )

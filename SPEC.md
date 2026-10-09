@@ -23,7 +23,7 @@ GOAL:
 
 CONSTRAINTS:
 - Speech-to-text: OpenAI `gpt-live-transcribe` (streaming, released 2026-07-27, the
-  newest). Text-to-speech: OpenAI `gpt-4o-mini-tts-2025-12-15`, voice `marin` (the
+  newest). Text-to-speech: OpenAI `gpt-4o-mini-tts-2025-12-15`, voice `cedar` (the
   newest TTS snapshot; `gpt-live-1` and `gpt-realtime-*` are speech-to-speech and
   would bypass the graph). Both can be overridden by env var.
 - The browser loop is voiceloop 0.1.25 (MIT), vendored, not loaded from a CDN.
@@ -136,6 +136,11 @@ _Updated: 2026-10-08_
   answers is treated as end of speech: voiceloop 0.1.25 ignores misfires and
   merged "Skip." into the next turn. (3) The date reader ignores commas
   ("Next, Friday.").
+- Spoken style: voice turns set `spoken` on the graph input, which adds
+  persona.SPOKEN (no lists, a figure and a question) to the knowledge and
+  handoff prompts. Guard, router and checks are unchanged. answer_check now also
+  rejects amounts written without a $ sign, which the price check can't see.
+  The voice is `cedar` (male).
 - Next: Nikita tests by voice on desktop and phone. The full fake-mic run
   (tests/browser/voice.js) was cut short after the fixes above, so rerun it
   before merging.

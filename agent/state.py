@@ -88,6 +88,12 @@ class SupportState(TypedDict, total=False):
     #: coming out as a key name.
     phrasebook: dict[str, str]
 
+    #: True when this turn came from voice mode — the reply will be read aloud,
+    #: so it is written for the ear (persona.SPOKEN). Set on every new message,
+    #: so turning voice off switches the style straight back. Changes style
+    #: only: routing, the guard and every check run exactly the same.
+    spoken: bool
+
     #: The knowledge lane's answer BEFORE answer_check has passed it. It is not
     #: appended to `messages` until it clears the check, so a draft that breaks
     #: the voice rules is never part of the conversation the customer sees.

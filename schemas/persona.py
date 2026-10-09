@@ -127,14 +127,46 @@ Answering "how much do you charge?" with only a question back is the fastest \
 way to lose somebody who was ready to book."""
 
 
-def system_prompt(*, reference: str = "", extra: str = "") -> str:
+# ── When the customer is talking, not typing ──────────────────────────────────
+# Added on top of everything above — never instead of it. Voice mode changes how
+# a reply SOUNDS; what it may say is still GROUNDING, and answer_check still
+# reads every word of it.
+
+SPOKEN = """\
+# This conversation is out loud
+
+The customer is TALKING to you, and what you write is read aloud to them word \
+for word by a voice. Write it the way you would say it on the phone, not the way \
+you would type it into a chat window.
+
+- No lists, bullets, headings or bold. They cannot be heard, and a list read \
+aloud is a price sheet being recited at someone.
+- Answer what they actually asked, then stop. Shorter than you would type — \
+usually one to three sentences — but never cut what they need just to be brief.
+- When there are several figures, give the one that answers them (usually where \
+we start) and either offer the rest or ask the question that tells you which \
+applies: "It depends on the crew size — two movers is $115 an hour if you pay \
+cash, and it goes up from there. How big is the place?" Never ONLY a question \
+back when we publish a number that answers them.
+- Write every amount of money as a dollar figure — "$115 an hour" — never in \
+words, never "/hr".
+- No links, no emoji, no symbols that mean nothing out loud.
+- Where there is a natural next step, end on something they can answer."""
+
+
+def system_prompt(*, reference: str = "", extra: str = "", spoken: bool = False) -> str:
     """
     Assemble the system prompt for a node.
 
     `reference` is the knowledge base. It is fenced so the model can see exactly
     where our material stops and anything else begins.
+
+    `spoken` adds the out-loud style for voice mode. It only adds: every rule
+    block is present either way.
     """
     blocks = [VOICE, GROUNDING, INJECTION_RESISTANCE, HANDLING_NOTES]
+    if spoken:
+        blocks.append(SPOKEN)
     if extra:
         blocks.append(extra)
     if reference:

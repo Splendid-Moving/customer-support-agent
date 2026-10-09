@@ -155,8 +155,8 @@ def voice_tts_model() -> str:
 
 
 def voice_tts_voice() -> str:
-    """OpenAI recommends marin or cedar for the best quality."""
-    return os.getenv("VOICE_TTS_VOICE", "marin").strip()
+    """A man's voice. OpenAI recommends cedar (male) or marin (female) for the best quality."""
+    return os.getenv("VOICE_TTS_VOICE", "cedar").strip()
 
 
 #: Longest text one signed utterance may carry, and longest sentence voiced per

@@ -138,6 +138,30 @@ def find_unpublished_price(text: str) -> str | None:
     )
 
 
+# ── Rule 3: every amount carries its dollar sign ───────────────────────────────
+# Rule 2 can only check what it can see, and it sees "$115". An answer written
+# for the ear might say "115 an hour" or "a hundred and fifteen dollars" — the
+# same figure, invisible to the check. So an amount without its sign is sent
+# back to be written as one, and Rule 2 then checks it like any other.
+
+_UNSIGNED = re.compile(
+    r"(?<![$\d,.])\d[\d,]*(?:\.\d+)?\s*(?:dollars?|bucks|an hour|per hour|a hour|/\s*hr\b|an hr\b)"
+    r"|\b(?:hundred|thousand)\b[\w\s-]{0,30}?\b(?:dollars?|bucks)\b",
+    re.IGNORECASE,
+)
+
+
+def find_amount_without_sign(text: str) -> str | None:
+    match = _UNSIGNED.search(text)
+    if not match:
+        return None
+    return (
+        f'you wrote an amount as "{match.group(0).strip()}". Write every amount of '
+        'money as a dollar figure exactly as it appears in the reference material, '
+        'like "$115 an hour".'
+    )
+
+
 # ── The node ───────────────────────────────────────────────────────────────────
 
 def _handoff_line() -> str:
@@ -164,7 +188,11 @@ def check(state: SupportState) -> dict:
         logger.warning("Answer check: empty draft on attempt %d", attempts)
         complaint = "you returned nothing at all."
     else:
-        complaint = find_third_person(draft) or find_unpublished_price(draft)
+        complaint = (
+            find_third_person(draft)
+            or find_amount_without_sign(draft)
+            or find_unpublished_price(draft)
+        )
 
     if complaint is None:
         return {"messages": [AIMessage(content=draft)], "answer_complaint": ""}

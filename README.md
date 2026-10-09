@@ -155,10 +155,13 @@ reply is ever spoken. Details and decisions are in `SPEC.md`.
 
 - Speech-to-text: OpenAI `gpt-live-transcribe`, streamed straight from the browser
   using a 60-second secret from `/api/voice/token`. The API key never leaves the server.
-- Text-to-speech: OpenAI `gpt-4o-mini-tts-2025-12-15`, voice `marin`, via
+- Text-to-speech: OpenAI `gpt-4o-mini-tts-2025-12-15`, voice `cedar`, via
   `/api/voice/speak`. Repeated lines (interview questions) are cached.
 - The browser loop is voiceloop 0.1.25, vendored in `static/voice/vendor/voiceloop/`.
   Our code is in `static/voice/`.
+- While voice is on, replies are written for the ear (`persona.SPOKEN`): no lists, a
+  figure and a question instead of a price sheet. Everything else in the graph — guard,
+  router, grounding, answer_check — runs exactly as it does for typing.
 - Turn it off with `VOICE_ENABLED=false`. Override the models with `VOICE_STT_MODEL`,
   `VOICE_TTS_MODEL` and `VOICE_TTS_VOICE`.
 - Tests: `node --test tests/voice_js/*.test.mjs`, plus `tests/browser/voice.js` (fake mic, costs cents).

@@ -76,7 +76,9 @@ def answer(state: SupportState) -> dict:
             complaint=complaint, draft=state.get("draft", "")
         )
 
-    prompt = persona.system_prompt(reference=knowledge.all_context(), extra=task)
+    prompt = persona.system_prompt(
+        reference=knowledge.all_context(), extra=task, spoken=bool(state.get("spoken"))
+    )
 
     # Only the recent turns. A long history pulls the model toward whatever it
     # said earlier — including, on a retry, the phrasing that just got rejected.

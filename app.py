@@ -227,7 +227,9 @@ def _graph_input(graph, cfg: dict, turn: Turn):
     it is not paused, it is a new message.
     """
     if _pending_interrupt(graph, cfg) is None:
-        return {"messages": [HumanMessage(content=turn.message)]}, cfg
+        # `spoken` decides how the reply is WRITTEN (for the ear, in voice
+        # mode). The guard and the router run the same either way.
+        return {"messages": [HumanMessage(content=turn.message)], "spoken": turn.voice}, cfg
 
     resume_cfg = tracing.as_resume(cfg)
     if turn.cancelled:
