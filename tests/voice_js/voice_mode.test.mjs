@@ -3,8 +3,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { makeConversationLLM } from '../../static/voice/voice_mode.js';
-import { ServerTTS } from '../../static/voice/server_tts.js';
+import { makeConversationLLM, vadOptionsFor } from '../../static/voice/voice_mode.js';
+import { ServerTTS, splitSentences } from '../../static/voice/server_tts.js';
 import { VoiceAgent, STT_PROVIDERS } from '../../static/voice/vendor/voiceloop/index.js';
 
 const LINES = {
@@ -153,4 +153,33 @@ test('a failed synthesis skips the sentence and reports it, rather than hanging 
   tts.remember([{ text: 'Hello there.', sig: 'abc' }]);
   assert.equal(await tts._synth('Hello there.'), null);
   assert.equal(errors.length, 1);
+});
+
+test('a one-word answer the speech detector calls a "misfire" still ends the turn', () => {
+  STT_PROVIDERS.__fake = () => ({ open() {}, feed() {}, commit() {}, close() {} });
+  let agent;
+  agent = new VoiceAgent({ sttProvider: '__fake', llm: makeConversationLLM({ page: fakePage(), tts: fakeTts(), lines: LINES }),
+    tts: { speak: async () => '' }, vadOptions: vadOptionsFor(() => agent) });
+  // If an upgrade renames these, this fails loudly instead of answers silently merging again.
+  assert.equal(typeof agent._onSpeechEnd, 'function');
+  let ended = 0;
+  agent._onSpeechEnd = () => { ended++; };
+  agent._speaking = true;
+  agent.vadOptions.onVADMisfire();
+  assert.equal(ended, 1);
+  agent._speaking = false;
+  agent.vadOptions.onVADMisfire();
+  assert.equal(ended, 1, 'no end without a start');
+  delete STT_PROVIDERS.__fake;
+});
+
+test('replies are voiced as whole sentences, so prosody holds and repeats hit the cache', async () => {
+  assert.deepEqual(splitSentences('And an email address?'), ['And an email address?']);
+  assert.deepEqual(splitSentences("First off — what's your name?"), ["First off — what's your name?"]);
+  assert.deepEqual(splitSentences('Our rate is $115.50 per hour. There is a 3.5 hour minimum! Fine?'),
+    ['Our rate is $115.50 per hour.', 'There is a 3.5 hour minimum!', 'Fine?']);
+  const tts = new ServerTTS({ fetchImpl: async () => ({}) });
+  const out = [];
+  for await (const s of tts._sentences((async function* () { yield 'Hi there. '; yield 'How are you?'; })())) out.push(s);
+  assert.deepEqual(out, ['Hi there.', 'How are you?']);
 });

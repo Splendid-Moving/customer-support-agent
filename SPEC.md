@@ -118,18 +118,27 @@ FAILURE (any of these = not done):
 ## How to run and test
 - Run: `.venv/bin/python server.py` → http://localhost:8080 (needs `OPENAI_API_KEY`)
 - Python tests: `.venv/bin/python -m pytest` (offline, no key)
-- Voice JS tests: `node --test static/voice/tests/`
+- Voice JS tests: `node --test tests/voice_js/*.test.mjs`
 - Browser suite: see `tests/browser/README.md`. The voice run is
   `tests/browser/voice.js`, which costs a few cents of OpenAI.
 - Env (optional): `VOICE_ENABLED`, `VOICE_STT_MODEL`, `VOICE_TTS_MODEL`, `VOICE_TTS_VOICE`
 
 ## Status
 _Updated: 2026-10-08_
-- Built: nothing yet. Spec written, research done, and both OpenAI models verified
-  live against the account (token mint OK; live deltas arrive about 300ms behind
-  speech; final transcript about 0.5s after commit; TTS takes 1.7–3.4s per sentence).
-- Changed from plan: nothing yet
-- Next: phase 1
-- Watch out for: `gpt-live-transcribe` rejects `server_vad`/`semantic_vad` and rates
-  below 24000. The browser WS URL is `wss://api.openai.com/v1/realtime?intent=transcription`
+- Built: all phases. Server (signed speech, token, TTS + cache), spoken-answer
+  understanding, browser voice loop (OpenAI live STT provider, server TTS, page
+  wiring, 🎤 button + voice bar). 355 pytest + 40 node tests green.
+- Verified live: a spoken question was answered hands-free and the interview
+  took spoken answers. Cached questions start speaking about 0.1s after the
+  customer stops; a fresh answer takes about 2s.
+- Changed from plan: (1) whole-sentence TTS instead of voiceloop's first-word
+  clips, which were choppy over the network. (2) A VAD "misfire" on one-word
+  answers is treated as end of speech: voiceloop 0.1.25 ignores misfires and
+  merged "Skip." into the next turn. (3) The date reader ignores commas
+  ("Next, Friday.").
+- Next: Nikita tests by voice on desktop and phone. The full fake-mic run
+  (tests/browser/voice.js) was cut short after the fixes above, so rerun it
+  before merging.
+- Watch out for: `gpt-live-transcribe` rejects `server_vad`/`semantic_vad` and
+  rates below 24000. The browser WS is `wss://api.openai.com/v1/realtime?intent=transcription`
   with subprotocols `realtime` and `openai-insecure-api-key.<ek>`.

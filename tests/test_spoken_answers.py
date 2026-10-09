@@ -95,6 +95,7 @@ def test_an_email_that_cannot_be_read_still_fails_validation():
     # Friday" and a bare "Friday" are the coming one. Either way the read-back
     # shows the date before anything is sent.
     ("next Friday", date(2026, 10, 16)),
+    ("Next, Friday.", date(2026, 10, 16)),   # as the transcriber actually wrote it
     ("this Friday", date(2026, 10, 9)),
     ("Friday.", date(2026, 10, 9)),
     ("tomorrow", date(2026, 10, 8)),

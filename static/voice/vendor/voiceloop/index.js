@@ -1,0 +1,16 @@
+export {
+  VoiceAgent, StreamingTTS, PiperTTS,
+  unlockAudio, warmVad, setPlaybackIO,
+  isSelfEcho, novelChars, toolResultText,
+  VOICE_SYSMSG, LANG_NAMES,
+} from './voice-agent.js';
+export {
+  STT_PROVIDERS, WEBSPEECH_FALLBACK, resolveSttProvider, webSpeechSupported,
+  makeWebSpeechSTT, makeElevenLabsSTT, makeSpeechmaticsSTT, makeDeepgramSTT, makeSonioxSTT, sttSelfCaptures,
+  warmDeepgramToken,
+  warmSonioxToken,
+} from './stt.js';
+export { ElevenLabsTTS } from './tts-elevenlabs.js';
+export { loadVoiceDeps, prewarmVoice } from './deps.js';
+export { makeOpenAILLM, toOpenAIMessages } from './llm-openai.js';
+export { TUNING } from './tuning.js';

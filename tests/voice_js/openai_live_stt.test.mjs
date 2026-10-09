@@ -168,3 +168,23 @@ test('close() is final: no reconnect, no late callbacks', async () => {
   assert.equal(FakeSocket.all.length, 1);
   assert.deepEqual(h.log.finals, []);
 });
+
+test('a pause closes the socket and a resume opens a new one', async () => {
+  const { stt } = harness();
+  stt.open(); await tick();
+  FakeSocket.all[0].open();
+  stt.close();                       // voiceloop's stop() on pause
+  assert.equal(FakeSocket.all[0].readyState, 3);
+  stt.open(); await tick();          // voiceloop's start() on resume
+  assert.equal(FakeSocket.all.length, 2);
+});
+
+test('after a fatal failure, starting voice again gets a fresh chance', async () => {
+  const { stt, log } = harness();
+  for (let i = 0; i < 3; i++) { stt.feed(speech(100)); await tick(); FakeSocket.all.at(-1).drop(); }
+  assert.equal(log.fatals.length, 1);
+  stt.feed(speech(100)); await tick();
+  assert.equal(FakeSocket.all.length, 3, 'no reconnect loop after giving up');
+  stt.open(); await tick();
+  assert.equal(FakeSocket.all.length, 4);
+});

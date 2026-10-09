@@ -141,8 +141,27 @@ wording change puts a real lead in the office inbox, and it looks exactly like a
 customer's.
 
 ```bash
-pytest                    # 207 checks, no API key needed
+pytest                    # 355 checks, no API key needed
 ```
+
+---
+
+## Voice mode
+
+Tap the 🎤 (or "Talk to me instead") and talk; Sam answers out loud, hands-free,
+and you can interrupt mid-sentence. It runs the same agent as typing: speech
+becomes a normal `/api/chat` turn, and only the server's approved, **signed**
+reply is ever spoken. Details and decisions are in `SPEC.md`.
+
+- Speech-to-text: OpenAI `gpt-live-transcribe`, streamed straight from the browser
+  using a 60-second secret from `/api/voice/token`. The API key never leaves the server.
+- Text-to-speech: OpenAI `gpt-4o-mini-tts-2025-12-15`, voice `marin`, via
+  `/api/voice/speak`. Repeated lines (interview questions) are cached.
+- The browser loop is voiceloop 0.1.25, vendored in `static/voice/vendor/voiceloop/`.
+  Our code is in `static/voice/`.
+- Turn it off with `VOICE_ENABLED=false`. Override the models with `VOICE_STT_MODEL`,
+  `VOICE_TTS_MODEL` and `VOICE_TTS_VOICE`.
+- Tests: `node --test tests/voice_js/*.test.mjs`, plus `tests/browser/voice.js` (fake mic, costs cents).
 
 ---
 

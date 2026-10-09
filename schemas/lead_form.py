@@ -636,6 +636,8 @@ def parse_spoken_date(text: str, today: date | None = None) -> date | None:
     """
     today = today or _today_local()
     said = _TRAILING.sub("", str(text or "").strip().lower())
+    # The transcriber punctuates speech it hears pausing in: "Next, Friday."
+    said = " ".join(re.sub(r"[,;]", " ", said).split())
     if not said:
         return None
     try:
