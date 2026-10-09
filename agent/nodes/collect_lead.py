@@ -290,7 +290,10 @@ def collect_lead(state: SupportState) -> Command[Literal["submit_lead", "__end__
                         continue
                     break
 
-                value = str(reply.get("answer") or "").strip()
+                # Said rather than typed — "Nik.", "nine oh oh two six", "next
+                # Friday" — becomes what the form stores. Only tidies or
+                # recognises; validation below still has the last word.
+                value = lead_form.understand(field, str(reply.get("answer") or ""))
 
                 # "not sure yet" is a real answer to the date question.
                 if field.kind == "date" and lead_form.is_undecided(value):

@@ -26,7 +26,8 @@ from collections import defaultdict, deque
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
@@ -34,7 +35,7 @@ from pydantic import BaseModel
 
 from agent.graph import build_graph
 from schemas import persona
-from services import config, knowledge, tracing, uploads
+from services import config, knowledge, tracing, uploads, voice
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -50,6 +51,11 @@ warnings.filterwarnings("ignore", message="Pydantic serializer warnings", catego
 STATIC = Path(__file__).parent / "static"
 
 app = FastAPI(title="Splendid Moving — chat")
+
+# Voice mode's browser code: plain ES modules, including the vendored voiceloop.
+# Only this folder is served — the chat page itself goes through `index` below,
+# which fills in the agent's name.
+app.mount("/voice", StaticFiles(directory=STATIC / "voice"), name="voice")
 
 
 #: Generous ceiling on any request body. The guard enforces MAX_MESSAGE_CHARS on
@@ -124,7 +130,12 @@ def get_graph():
 _hits: dict[str, deque] = defaultdict(deque)
 
 
-def _rate_limited(request: Request) -> bool:
+def _rate_limited(
+    request: Request,
+    bucket: str = "chat",
+    limit: int = config.RATE_LIMIT_PER_MINUTE,
+    seconds: int = 60,
+) -> bool:
     """
     A crude per-IP limit, held in memory.
 
@@ -132,13 +143,17 @@ def _rate_limited(request: Request) -> bool:
     for what it defends against — one person with a script, not a distributed
     attack — and a Redis dependency for this would be more moving parts than the
     problem deserves. Revisit it if this ever runs on more than one instance.
+
+    Chat turns and photo uploads share the "chat" bucket. Voice has its own
+    buckets, because a spoken reply is several speak requests and must not eat
+    into the budget for answering the interview.
     """
     ip = (request.client.host if request.client else "") or "unknown"
     now = time.monotonic()
-    window = _hits[ip]
-    while window and now - window[0] > 60:
+    window = _hits[f"{bucket}:{ip}"]
+    while window and now - window[0] > seconds:
         window.popleft()
-    if len(window) >= config.RATE_LIMIT_PER_MINUTE:
+    if len(window) >= limit:
         return True
     window.append(now)
     return False
@@ -160,6 +175,9 @@ class Turn(BaseModel):
     message: str = ""
     reply: dict | None = None
     cancelled: bool = False
+    #: Sent by voice mode. Adds signed `speech` to the events — what Sam says
+    #: out loud — and changes nothing else about the turn.
+    voice: bool = False
 
 
 def _pending_interrupt(graph, cfg: dict):
@@ -320,6 +338,10 @@ async def chat(request: Request, turn: Turn):
     def event(kind: str, data: dict) -> str:
         return f"data: {json.dumps({'event': kind, **data})}\n\n"
 
+    def spoken(compose, source) -> dict:
+        """`{"speech": [...]}` on a voice turn, nothing at all on a typed one."""
+        return {"speech": compose(source)} if turn.voice and voice.enabled() else {}
+
     def run():
         yield event("start", {"thread_id": thread_id})
         try:
@@ -344,7 +366,7 @@ async def chat(request: Request, turn: Turn):
 
             # Paused mid-interview: the next question, not a finished answer.
             if (pending := _pending_interrupt(graph, cfg)) is not None:
-                yield event("ask", {"paused": True, "ask": pending})
+                yield event("ask", {"paused": True, "ask": pending, **spoken(voice.speech_for_ask, pending)})
                 return
 
             messages = final.get("messages") or []
@@ -363,6 +385,9 @@ async def chat(request: Request, turn: Turn):
                     "reply": corrected,
                     "streamed": bool(streamed) and not corrected,
                     "intent": final.get("intent", ""),
+                    # The approved reply — never the streamed draft, which
+                    # answer_check may have rejected after it was on screen.
+                    **spoken(voice.speech_for_reply, reply),
                 },
             )
 
@@ -370,16 +395,18 @@ async def chat(request: Request, turn: Turn):
             # The customer gets a human sentence with a phone number; the stack
             # trace goes to the log, where someone can actually act on it.
             logger.exception("Chat turn failed (thread %s)", thread_id)
+            sorry = (
+                "Something went wrong on my end — sorry. Give the office a "
+                f"call on {config.COMPANY_PHONE} and they'll sort you out."
+            )
             yield event(
                 "done",
                 {
                     "paused": False,
                     "error": f"{type(exc).__name__}",
                     "streamed": False,
-                    "reply": (
-                        "Something went wrong on my end — sorry. Give the office a "
-                        f"call on {config.COMPANY_PHONE} and they'll sort you out."
-                    ),
+                    "reply": sorry,
+                    **spoken(voice.speech_for_reply, sorry),
                 },
             )
 
@@ -388,3 +415,77 @@ async def chat(request: Request, turn: Turn):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+# ── Voice mode ─────────────────────────────────────────────────────────────────
+# Three small endpoints behind the 🎤 button. None of them touches the graph:
+# a spoken turn goes through /api/chat like a typed one, with `voice: true`.
+
+class SpeakRequest(BaseModel):
+    """One sentence to voice: `part`, taken from server-signed `text`."""
+
+    text: str = ""
+    sig: str = ""
+    part: str = ""
+
+
+_VOICE_OFF = {"error": "Voice isn't available right now — typing still works."}
+
+
+@app.get("/api/voice/config")
+def voice_config():
+    """
+    Whether to show the 🎤 button, and the fixed lines the page may speak.
+
+    The lines come signed, so the page can say "Sorry, I didn't catch that"
+    without a round trip — and still cannot say anything the server did not
+    write.
+    """
+    if not voice.enabled():
+        return {"enabled": False}
+    return {"enabled": True, "lines": voice.fixed_lines()}
+
+
+@app.post("/api/voice/token")
+def voice_token(request: Request):
+    """
+    A one-minute secret the browser uses to open its own transcription socket
+    to OpenAI. Audio goes browser → OpenAI directly; it never passes through
+    this server, and our API key never reaches the browser.
+    """
+    if not voice.enabled():
+        return JSONResponse(_VOICE_OFF, status_code=503)
+    if _rate_limited(request, "voice-token", config.VOICE_TOKENS_PER_10_MIN, 600):
+        return JSONResponse({"error": "Voice is resting for a minute — typing still works."},
+                            status_code=429)
+    try:
+        return voice.mint_transcription_token()
+    except voice.VoiceUnavailable:
+        return JSONResponse(_VOICE_OFF, status_code=502)
+
+
+@app.post("/api/voice/speak")
+def voice_speak(request: Request, body: SpeakRequest):
+    """
+    Audio for one sentence of something the server already approved.
+
+    Refuses anything without a valid signature, and any sentence that is not
+    part of the signed text — so this is never a free text-to-speech service for
+    whoever finds the URL, and never a way to make Sam say something new.
+    """
+    if not voice.enabled():
+        return JSONResponse(_VOICE_OFF, status_code=503)
+    if len(body.text) > config.MAX_SPOKEN_CHARS or len(body.part) > config.MAX_SPOKEN_PART_CHARS:
+        return JSONResponse({"error": "too long"}, status_code=413)
+    if not voice.verify(body.text, body.sig) or not voice.part_of(body.part, body.text):
+        return JSONResponse({"error": "not something I said"}, status_code=403)
+    if _rate_limited(request, "voice-speak", config.VOICE_SPEAK_PER_MINUTE, 60):
+        return JSONResponse({"error": "slow down"}, status_code=429)
+    try:
+        audio = voice.synthesize(body.part)
+    except voice.VoiceUnavailable:
+        return JSONResponse(_VOICE_OFF, status_code=502)
+    # Private: the audio is of a reply to one customer. Short max-age lets the
+    # browser reuse a sentence it replays without asking again.
+    return Response(audio, media_type=voice.AUDIO_TYPE,
+                    headers={"Cache-Control": "private, max-age=600"})

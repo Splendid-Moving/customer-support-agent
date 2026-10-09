@@ -22,5 +22,8 @@ python-multipart==0.0.32
 langgraph-checkpoint-sqlite==3.1.1
 
 requests==2.34.2
+
+# Voice mode: reads spoken dates ("next Friday", "el 20 de octubre").
+dateparser==1.4.3
 pydantic==2.13.4
 python-dotenv==1.2.2

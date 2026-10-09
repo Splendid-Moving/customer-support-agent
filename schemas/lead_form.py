@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import asdict, dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Literal
 
 LeadType = Literal["estimate", "long_distance", "question"]
@@ -448,6 +448,10 @@ UNDECIDED = {
     "not sure", "no", "nope", "unsure", "dont know", "don't know", "no idea",
     "flexible", "not yet", "tbd", "havent decided", "haven't decided", "skip",
     "not settled", "undecided", "idk", "n/a", "na",
+    # The button says "Not sure yet", so people say it too.
+    "not sure yet", "dont know yet", "don't know yet", "not decided", "not decided yet",
+    "no idea yet", "not settled yet", "i'm not sure", "im not sure", "i don't know",
+    "i dont know",
 }
 
 
@@ -502,7 +506,181 @@ def coerce_option(field: Field_, value: str) -> str:
         option for option in field.options
         if option.lower().startswith(text) or option.lower() in text
     ]
-    return near[0] if len(near) == 1 else value
+    if near:
+        return near[0] if len(near) == 1 else value
+
+    # Said rather than typed: "it's a two bedroom apartment", "call me". Matched
+    # on the option's meaningful words, with the same one-candidate-only rule.
+    said = _words(text)
+    heard = [option for option in field.options if _option_heard(option, said)]
+    return heard[0] if len(heard) == 1 else value
+
+
+#: Words that carry no choice. Dropped from both sides before matching, so "just
+#: a few items" and "a few items" are the same answer.
+_FILLER = {
+    "a", "an", "the", "just", "my", "our", "its", "it's", "it", "is", "we", "have",
+    "got", "about", "like", "only", "of", "within", "yet", "please", "i", "im",
+    "i'm", "me", "would", "be", "prefer", "rather", "to", "by", "that", "on",
+}
+
+_NUMBER_WORDS = {
+    "zero": "0", "oh": "0", "one": "1", "two": "2", "three": "3", "four": "4",
+    "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
+}
+
+#: Ways of saying an option that share no word with it.
+_SAID_AS = {
+    "Phone": {"call", "ring", "phone", "telephone", "text"},
+    "Email": {"email", "e-mail", "mail"},
+}
+
+
+def _words(text: str) -> set[str]:
+    """Lower-case content words, numbers as digits, plurals folded to singular."""
+    out = set()
+    for word in re.findall(r"[a-z0-9+'-]+", text.lower()):
+        word = _NUMBER_WORDS.get(word, word)
+        if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
+            word = word[:-1]
+        if word not in _FILLER:
+            out.add(word)
+    return out
+
+
+def _option_heard(option: str, said: set[str]) -> bool:
+    if option in _SAID_AS:
+        return bool(said & _SAID_AS[option])
+    # "Office / commercial" is either word; "4+ bedrooms" is any number from four.
+    for alternative in option.split("/"):
+        need = _words(alternative)
+        if need and all(_word_heard(w, said) for w in need):
+            return True
+    return False
+
+
+def _word_heard(word: str, said: set[str]) -> bool:
+    if word.endswith("+") and word[:-1].isdigit():
+        return any(s.isdigit() and int(s) >= int(word[:-1]) for s in said)
+    return word in said
+
+
+# ── Answers the way people say them ───────────────────────────────────────────
+# Voice mode sends whatever the transcriber heard — "Nik.", "nine oh oh two six",
+# "nik at gmail dot com", "next Friday". `understand` turns that into what the
+# form stores. It only tidies or recognises: anything it cannot read with
+# confidence comes back as it went in, and validation still has the last word.
+
+_TRAILING = re.compile(r"[\s.!,;:…]+$")
+
+
+def understand(field: Field_, value: str, today: date | None = None) -> str:
+    text = str(value or "").strip()
+    if field.kind == "textarea" or not text:
+        return text
+    # The transcriber ends every sentence with a full stop. A question mark is
+    # kept: it means they asked something, which collect_lead deflects.
+    text = _TRAILING.sub("", text).strip("\"'“”")
+
+    if field.kind in ("tel", "zip"):
+        return _spoken_digits(text) or text
+    if field.kind == "email":
+        return _spoken_email(text)
+    if field.kind == "date":
+        when = parse_spoken_date(text, today)
+        return when.isoformat() if when else text
+    return text
+
+
+def _spoken_digits(text: str) -> str:
+    """'nine oh oh two six' / '9 0 0 2 6' → '90026'. Empty if it isn't all numbers."""
+    parts = re.split(r"[\s,.\-()]+", text.lower())
+    digits = []
+    for part in filter(None, parts):
+        part = _NUMBER_WORDS.get(part, part)
+        if not part.isdigit():
+            return ""
+        digits.append(part)
+    return "".join(digits)
+
+
+def _spoken_email(text: str) -> str:
+    text = text.lower()
+    if _EMAIL.match(text):
+        return text
+    text = re.sub(r"\s+at\s+", "@", f" {text} ").strip()
+    text = re.sub(r"\s+dot\s+", ".", text)
+    return re.sub(r"\s+", "", text)
+
+
+_WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+
+#: A span of time, not a day. Storing a day for "next week" would be our guess,
+#: not their answer — so these are left for validation to ask again.
+_VAGUE = re.compile(
+    r"\b(weeks?|weekend|months?|years?|semanas?|mes|meses|недел\w*|месяц\w*)\b"
+)
+
+_LEADING_FILLER = re.compile(
+    r"^(?:on|the|el|la|le|um|uh|maybe|probably|around|about|it's|its)\s+"
+)
+
+
+def parse_spoken_date(text: str, today: date | None = None) -> date | None:
+    """
+    "next Friday", "November 14th", "el 20 de octubre", "в пятницу" → a date.
+
+    "Next Friday" is next WEEK's Friday, the way calendar apps read it; "this
+    Friday" and "Friday" are the coming one. Ambiguous or vague answers return
+    None. The read-back shows whatever we settled on before anything is sent.
+    """
+    today = today or _today_local()
+    said = _TRAILING.sub("", str(text or "").strip().lower())
+    if not said:
+        return None
+    try:
+        return datetime.strptime(said, "%Y-%m-%d").date()
+    except ValueError:
+        pass
+
+    weekday = re.fullmatch(r"(?:on\s+)?(next|this|this coming|coming)\s+(\w+)", said)
+    if weekday and weekday.group(2) in _WEEKDAYS:
+        target = _WEEKDAYS.index(weekday.group(2))
+        if weekday.group(1) == "next":
+            monday_next_week = today + timedelta(days=7 - today.weekday())
+            return monday_next_week + timedelta(days=target)
+        return today + timedelta(days=(target - today.weekday()) % 7 or 7)
+
+    has_digits = bool(re.search(r"\d", said))
+    if _VAGUE.search(said) and not has_digits:
+        return None
+    while (trimmed := _LEADING_FILLER.sub("", said)) != said:
+        said = trimmed
+
+    import dateparser  # deferred: its language data takes a moment to load
+
+    settings = {
+        "PREFER_DATES_FROM": "future",
+        "RELATIVE_BASE": datetime(today.year, today.month, today.day, 12),
+        "DATE_ORDER": "MDY",
+        "RETURN_AS_TIMEZONE_AWARE": False,
+    }
+    # A real day first. "3pm" and "20.10" fail here, which is the point.
+    when = dateparser.parse(said, settings={**settings, "REQUIRE_PARTS": ["day"]})
+    if when is None and not has_digits:
+        # A bare weekday in any language: "Friday", "viernes", "в пятницу".
+        when = dateparser.parse(said, settings=settings)
+        if when and (when.hour, when.minute) != (0, 0):
+            when = None
+    return when.date() if when else None
+
+
+def _today_local() -> date:
+    from zoneinfo import ZoneInfo
+
+    from services import config
+
+    return datetime.now(ZoneInfo(config.TIMEZONE)).date()
 
 
 #: Whole answers that mean "I didn't follow the question" rather than answering

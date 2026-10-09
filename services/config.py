@@ -129,6 +129,47 @@ MAX_TURNS_PER_THREAD = 60
 RATE_LIMIT_PER_MINUTE = 40
 
 
+# ── Voice mode ─────────────────────────────────────────────────────────────────
+# Speech in and out, both through OpenAI. See services/voice.py and SPEC.md.
+# Defaults are the newest models as of 2026-10; each is overridable so a model
+# change is an env var, not a deploy.
+
+def openai_api_key() -> str:
+    return os.getenv("OPENAI_API_KEY", "").strip()
+
+
+def voice_enabled() -> bool:
+    """On unless switched off — and never on without a key to pay for it."""
+    on = os.getenv("VOICE_ENABLED", "true").strip().lower() not in ("false", "0", "no")
+    return on and bool(openai_api_key())
+
+
+def voice_stt_model() -> str:
+    """Streaming transcription. Must support Realtime transcription sessions."""
+    return os.getenv("VOICE_STT_MODEL", "gpt-live-transcribe").strip()
+
+
+def voice_tts_model() -> str:
+    """Pinned snapshot rather than the moving alias, so the voice never changes under us."""
+    return os.getenv("VOICE_TTS_MODEL", "gpt-4o-mini-tts-2025-12-15").strip()
+
+
+def voice_tts_voice() -> str:
+    """OpenAI recommends marin or cedar for the best quality."""
+    return os.getenv("VOICE_TTS_VOICE", "marin").strip()
+
+
+#: Longest text one signed utterance may carry, and longest sentence voiced per
+#: request. A reply is a few sentences; anything near these is not a reply.
+MAX_SPOKEN_CHARS = 4000
+MAX_SPOKEN_PART_CHARS = 1200
+
+#: Per IP. A voice session mints one token (more only on reconnect), and speaks
+#: one request per sentence — a brisk conversation is well under both.
+VOICE_TOKENS_PER_10_MIN = 12
+VOICE_SPEAK_PER_MINUTE = 90
+
+
 # ── Safety ─────────────────────────────────────────────────────────────────────
 
 def dry_run() -> bool:
