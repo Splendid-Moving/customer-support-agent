@@ -346,8 +346,8 @@ def test_the_page_is_served_with_the_agent_name_filled_in():
     html = web._page((web.STATIC / "index.html").stat().st_mtime_ns)
     assert "{{AGENT_NAME}}" not in html
     assert "{{AGENT_INITIAL}}" not in html
-    assert f"Hi, I'm <em>{persona.AGENT_NAME}</em>" in html
-    assert f"{persona.AGENT_NAME} · Splendid Moving" in html
+    assert f"Hi, I'm {persona.AGENT_NAME}." in html
+    assert f"{persona.AGENT_NAME} at Splendid Moving" in html
 
 
 def test_the_page_never_names_the_agent_twice():
@@ -376,7 +376,9 @@ def test_every_opening_suggestion_is_something_the_knowledge_base_answers():
     from services import knowledge
 
     html = (web.STATIC / "index.html").read_text(encoding="utf-8")
-    chips = re.findall(r'<button class="chip" type="button">([^<]+)</button>', html)
+    # A chip's message is its text alone; the icons inside it add none.
+    buttons = re.findall(r'<button class="chip[^"]*" type="button">(.*?)</button>', html)
+    chips = [re.sub(r"<[^>]+>", "", button).strip() for button in buttons]
     assert len(chips) >= 4, chips
 
     kb = knowledge.all_context().lower()

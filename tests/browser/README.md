@@ -33,6 +33,10 @@ emails the office.
 | `edges.js` | A small phone (375×667), "Something else", a rejected phone number, and the same interview in Russian. |
 | `conversation.js` | That an ordinary question still reads as a chat, that an estimate then starts an interview, and that "Start over" leaves nothing behind. |
 
+Run them **one at a time**. The app allows 40 messages a minute per visitor,
+and all three at once from one machine go over it: the page gets a 429 and the
+test times out waiting for a question that never comes.
+
 ## Writing more
 
 The one thing to get right is waiting. Two races cost an hour between them:

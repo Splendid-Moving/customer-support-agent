@@ -111,7 +111,7 @@ what makes this safe to leave running on a public URL.
 | `schemas/lead_form.py` | What the agent asks for, how it phrases each question, and what counts as a valid answer. One definition; the interview, the validator and the email all read it. |
 | `agent/` | The graph. `state.py` is the shared memory, `graph.py` wires it together, `nodes/` is one file per step. |
 | `services/` | The outside world — the knowledge loader, Resend, photo storage. Nothing here knows the agent exists. |
-| `static/index.html` | The chat page. One file, no build step. |
+| `static/index.html` | The chat page. One file, no build step. Glass panels over a soft blue backdrop, the Geist font, and Phosphor icons (both loaded from CDNs). |
 | `scripts/import_kb.py` | Turns the KB spreadsheet into the markdown the agent reads. |
 | `tests/` | 207 checks that run in under a second, with no API key and no network. |
 

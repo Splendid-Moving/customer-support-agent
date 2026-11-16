@@ -3,242 +3,418 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#fbfbf9" />
+<meta name="theme-color" content="#eef3fb" />
 <title>Splendid Moving — chat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <style>
 /* ─────────────────────────────────────────────────────────────
-   Light, quiet, type-led.
-
-   The restraint is the point. This page is the first contact
-   someone has with a company they are about to let carry
-   everything they own, and a busy interface reads as a sales
-   funnel. One accent colour, one type family, a lot of white,
-   and nothing on screen that isn't doing a job.
-
-   The agent's replies are set flush as plain text rather than
-   in bubbles — bubbles on both sides is the universal look of
-   a support widget, and this should read like a conversation.
+   The customer chat page: frosted-glass panels over a soft,
+   slowly drifting field of Splendid blue. One sans family, one
+   accent, icons from Phosphor. On desktop the chat floats as a
+   glass window; on a phone it fills the screen.
    ───────────────────────────────────────────────────────────── */
 
 :root {
-  --bg:        #fbfbf9;
-  --surface:   #ffffff;
-  --ink:       #10233a;
-  --ink-deep:  #032449;
-  --muted:     #6d7887;
-  --faint:     #99a2ae;
-  --line:      #e9e8e4;
-  --accent:    #188bf6;
-  --accent-dp: #0f6fce;
-  --accent-bg: #eef5ff;
-  --danger:    #b23c26;
+  --page:        #eef3fb;
+  --ink:         #0c1e33;
+  --ink-deep:    #062a52;
+  --muted:       #56657a;
+  --faint:       #8b97a8;
 
-  --sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --serif: "Instrument Serif", Georgia, serif;
-  --gut: clamp(1.15rem, 5vw, 2rem);
-  --r: 12px;
+  --brand:       #188bf6;
+  --brand-deep:  #0b63c4;
+  --brand-soft:  rgba(24, 139, 246, .10);
+  --brand-ring:  rgba(24, 139, 246, .28);
+  --danger:      #b23c26;
+
+  /* Glass: a translucent white with a bright top edge and a navy-tinted shadow. */
+  --glass:        rgba(255, 255, 255, .58);
+  --glass-strong: rgba(255, 255, 255, .78);
+  --glass-line:   rgba(255, 255, 255, .85);
+  --hairline:     rgba(12, 30, 51, .07);
+  --blur:         blur(22px) saturate(1.6);
+  --lift: 0 1px 1px rgba(6, 42, 82, .04), 0 8px 24px -6px rgba(6, 42, 82, .12), 0 24px 60px -24px rgba(6, 42, 82, .18);
+  --lift-soft: 0 1px 1px rgba(6, 42, 82, .03), 0 6px 18px -8px rgba(6, 42, 82, .14);
+  --shine: inset 0 1px 0 rgba(255, 255, 255, .9);
+
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --gut: clamp(1rem, 4.5vw, 1.75rem);
+  --ease: cubic-bezier(.22, .9, .28, 1);
+  --spring: cubic-bezier(.34, 1.4, .64, 1);
 
   color-scheme: light;
 }
 
 * { box-sizing: border-box; }
 
-/* The `hidden` attribute hides an element through a UA-stylesheet rule, and ANY
-   author rule that sets `display` beats it. `.icon` sets display:grid, so the
-   attach-photos button was marked hidden at every step of the conversation and
-   visible at every step of the conversation — inviting people to attach a
-   photo before anyone had asked for one. */
+/* `hidden` must win over any author `display`, e.g. `.icon { display: grid }`. */
 [hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
 
 body {
-  background: var(--bg);
+  background: var(--page);
   color: var(--ink);
   font-family: var(--sans);
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
 
+.ph, .ph-fill { line-height: 1; }
+
+/* ── Backdrop: the light the glass sits in ───────────────── */
+
+.backdrop {
+  position: fixed; inset: 0; z-index: 0;
+  overflow: hidden; pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 50% -10%, #ffffff 0%, transparent 60%),
+    linear-gradient(180deg, #f4f7fc 0%, #e8eef8 100%);
+}
+.backdrop span {
+  position: absolute; border-radius: 50%;
+  filter: blur(70px); opacity: .55;
+  animation: drift 26s ease-in-out infinite alternate;
+}
+.backdrop span:nth-child(1) { width: 46vmax; height: 46vmax; left: -14vmax; top: -12vmax; background: #9cc9ff; }
+.backdrop span:nth-child(2) { width: 38vmax; height: 38vmax; right: -12vmax; top: 18vh; background: #c7d3ff; animation-duration: 32s; animation-delay: -8s; }
+.backdrop span:nth-child(3) { width: 34vmax; height: 34vmax; left: 20vw; bottom: -16vmax; background: #7fb8fa; opacity: .4; animation-duration: 38s; animation-delay: -14s; }
+@keyframes drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(6vmax, 4vmax, 0) scale(1.12); }
+}
+
+/* ── Shell ────────────────────────────────────────────────── */
+
 .app {
+  position: relative; z-index: 1;
   height: 100dvh;
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
-/* ── Header ─────────────────────────────────────────────── */
+/* On a wide screen the chat is a floating glass window. */
+@media (min-width: 820px) {
+  .app {
+    height: calc(100dvh - 48px);
+    margin: 24px auto;
+    border-radius: 28px;
+    background: rgba(255, 255, 255, .42);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-line);
+    box-shadow: var(--lift), var(--shine);
+    overflow: hidden;
+  }
+}
+
+/* ── Header ───────────────────────────────────────────────── */
 
 header.bar {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  padding: 1rem var(--gut) .85rem;
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: saturate(1.4) blur(8px);
   position: relative;
+  display: flex; align-items: center; gap: .8rem;
+  padding: calc(.8rem + env(safe-area-inset-top)) var(--gut) .8rem;
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border-bottom: 1px solid var(--hairline);
+}
+@media (min-width: 820px) {
+  header.bar { background: rgba(255, 255, 255, .35); padding-top: .9rem; }
 }
 
 .avatar {
-  width: 34px; height: 34px; flex: none;
+  position: relative;
+  width: 40px; height: 40px; flex: none;
   border-radius: 50%;
-  background: var(--ink-deep);
+  background: linear-gradient(145deg, #2a9bff 0%, var(--ink-deep) 100%);
   color: #fff;
   display: grid; place-items: center;
-  font-size: .82rem; font-weight: 600; letter-spacing: .01em;
+  font-size: .92rem; font-weight: 600;
+  box-shadow: 0 4px 14px -4px rgba(24, 139, 246, .55), inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+.avatar::after {
+  content: ""; position: absolute; right: -1px; bottom: -1px;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--brand); border: 2px solid #fff;
 }
 
-.who-name { font-weight: 600; font-size: .95rem; letter-spacing: -.01em; line-height: 1.25; }
+.who-name { font-weight: 600; font-size: .97rem; letter-spacing: -.015em; line-height: 1.25; }
 .who-sub {
-  display: flex; align-items: center; gap: .38rem;
-  font-size: .78rem; color: var(--faint);
+  display: flex; align-items: center; gap: .4rem;
+  font-size: .8rem; color: var(--muted);
 }
-.dot { width: 6px; height: 6px; border-radius: 50%; background: #34a853; }
-
+.dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--brand);
+  box-shadow: 0 0 0 0 var(--brand-ring);
+  animation: pulse 2.4s ease-out infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(24, 139, 246, .45); }
+  70%, 100% { box-shadow: 0 0 0 7px rgba(24, 139, 246, 0); }
+}
 
 .bar .grow { flex: 1; }
 
 .linkbtn {
-  border: 0; background: none; font: inherit;
-  font-size: .82rem; color: var(--muted);
-  padding: .5rem .35rem; cursor: pointer; border-radius: 8px;
-  min-height: 40px;
+  display: inline-flex; align-items: center; gap: .4rem;
+  border: 1px solid var(--glass-line);
+  background: rgba(255, 255, 255, .55);
+  font: inherit; font-size: .84rem; font-weight: 500; color: var(--muted);
+  padding: 0 .85rem; min-height: 38px; border-radius: 999px;
+  cursor: pointer;
+  box-shadow: var(--lift-soft), var(--shine);
+  transition: color .2s, background .2s, transform .2s var(--ease);
 }
-.linkbtn:hover { color: var(--ink); }
-.linkbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.linkbtn .ph { font-size: 1rem; transition: transform .5s var(--ease); }
+.linkbtn { white-space: nowrap; }
+.linkbtn:hover { color: var(--ink); background: rgba(255, 255, 255, .85); }
+/* On a phone the label would wrap; keep it for screen readers, show the icon. */
+@media (max-width: 480px) {
+  .linkbtn { width: 40px; height: 40px; padding: 0; justify-content: center; }
+  .linkbtn .ph { font-size: 1.15rem; }
+  .linkbtn__label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+}
+.who-name { white-space: nowrap; }
+.linkbtn:hover .ph { transform: rotate(-200deg); }
+.linkbtn:active { transform: scale(.97); }
 
-/* Progress rail during the estimate interview. Two pixels of
-   reassurance that this has an end. */
+/* Progress across the bottom of the header during the interview. */
 .rail {
   position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
-  background: transparent;
+  background: transparent; overflow: hidden;
 }
 .rail i {
   display: block; height: 100%; width: 0;
-  background: var(--accent);
-  transition: width .45s cubic-bezier(.22,.9,.28,1);
+  background: linear-gradient(90deg, #7cc0ff, var(--brand));
+  border-radius: 0 2px 2px 0;
+  transition: width .5s var(--ease);
 }
 
-/* ── Thread ─────────────────────────────────────────────── */
+/* ── Thread ───────────────────────────────────────────────── */
 
 .thread {
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: clamp(1.5rem, 6vw, 2.75rem) var(--gut) .75rem;
+  padding: clamp(1.5rem, 6vw, 2.5rem) var(--gut) 1rem;
   scrollbar-width: thin;
-  scrollbar-color: #dcdbd6 transparent;
+  scrollbar-color: rgba(12, 30, 51, .15) transparent;
+  display: flex; flex-direction: column;
 }
+/* Nothing in the transcript may shrink to fit: a flex item with overflow:hidden
+   (the read-back) otherwise squashes and cuts off instead of scrolling. */
+.thread > * { flex-shrink: 0; }
 .thread::-webkit-scrollbar { width: 7px; }
-.thread::-webkit-scrollbar-thumb { background: #dcdbd6; border-radius: 99px; }
+.thread::-webkit-scrollbar-thumb { background: rgba(12, 30, 51, .15); border-radius: 99px; }
 
-.hello { max-width: 30ch; margin-bottom: 2.25rem; }
+/* Opening screen */
+.hello { max-width: 34rem; margin: auto 0 1.5rem; padding-top: 1rem; }
+.hello__avatar {
+  width: 56px; height: 56px; border-radius: 18px;
+  display: grid; place-items: center;
+  background: linear-gradient(145deg, #2a9bff 0%, var(--ink-deep) 100%);
+  color: #fff; font-size: 1.35rem; font-weight: 600;
+  box-shadow: 0 12px 30px -10px rgba(24, 139, 246, .6), inset 0 1px 0 rgba(255, 255, 255, .35);
+  margin-bottom: 1.35rem;
+}
 .hello h1 {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: clamp(2.15rem, 9vw, 2.9rem);
-  line-height: 1.05;
-  letter-spacing: -.02em;
+  font-weight: 600;
+  font-size: clamp(2rem, 7.5vw, 2.7rem);
+  line-height: 1.06;
+  letter-spacing: -.04em;
   color: var(--ink-deep);
-  margin: 0 0 .5rem;
+  margin: 0 0 .65rem;
 }
-.hello h1 em { font-style: italic; }
-.hello p { margin: 0; color: var(--muted); font-size: 1rem; }
+.hello p { margin: 0; color: var(--muted); font-size: 1.02rem; max-width: 30rem; }
 
-.chips { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: 1.5rem; }
+.chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.6rem; }
 .chip {
-  font: inherit; font-size: .88rem;
-  padding: .55rem .9rem;
+  display: inline-flex; align-items: center; gap: .5rem;
+  font: inherit; font-size: .9rem; font-weight: 500;
+  padding: 0 1rem 0 .8rem; min-height: 44px;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border: 1px solid var(--glass-line);
+  background: var(--glass);
+  backdrop-filter: blur(14px) saturate(1.5);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
   color: var(--ink);
-  cursor: pointer; min-height: 42px;
-  transition: border-color .16s, background .16s, transform .16s;
+  cursor: pointer;
+  box-shadow: var(--lift-soft), var(--shine);
+  transition: transform .25s var(--ease), background .2s, box-shadow .25s;
 }
-.chip:hover { border-color: var(--accent); background: var(--accent-bg); transform: translateY(-1px); }
-.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip .ph { font-size: 1.1rem; color: var(--brand); }
+.chip:hover { background: var(--glass-strong); transform: translateY(-2px); box-shadow: var(--lift), var(--shine); }
+.chip:active { transform: translateY(0) scale(.98); }
 
-.reveal { animation: rise .5s cubic-bezier(.22,.9,.28,1) both; }
-@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* The main thing people came to do gets the one solid button. */
+.chip--primary {
+  flex-basis: 100%;
+  justify-content: flex-start;
+  min-height: 56px; padding: 0 1.1rem 0 .7rem;
+  font-size: 1rem; font-weight: 600;
+  color: #fff; border-color: transparent;
+  background: linear-gradient(135deg, #2a9bff 0%, var(--brand-deep) 100%);
+  box-shadow: 0 10px 28px -10px rgba(24, 139, 246, .75), inset 0 1px 0 rgba(255, 255, 255, .3);
+}
+.chip--primary .chip__icon {
+  width: 38px; height: 38px; border-radius: 12px;
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, .18);
+}
+.chip--primary .ph { color: #fff; font-size: 1.2rem; }
+.chip--primary .chip__go { margin-left: auto; transition: transform .25s var(--ease); }
+.chip--primary:hover { background: linear-gradient(135deg, #3aa4ff 0%, #0d6ad0 100%); box-shadow: 0 14px 32px -10px rgba(24, 139, 246, .85), inset 0 1px 0 rgba(255, 255, 255, .3); }
+.chip--primary:hover .chip__go { transform: translateX(3px); }
+@media (min-width: 560px) {
+  .chip--primary { flex-basis: auto; padding-right: 1.25rem; }
+}
+
+/* The one orchestrated entrance: the opening screen, in sequence. */
+.reveal { animation: rise .55s var(--ease) both; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); filter: blur(4px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
 
 /* Messages */
-.msg { margin-bottom: 1.6rem; max-width: 60ch; }
-.msg.them { white-space: pre-wrap; }
+.msg { margin-bottom: 1rem; max-width: min(60ch, 88%); font-size: .97rem; }
+.msg.them {
+  align-self: flex-start;
+  white-space: pre-wrap;
+  padding: .75rem 1rem;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-line);
+  border-radius: 6px 20px 20px 20px;
+  box-shadow: var(--lift-soft), var(--shine);
+}
 .msg.them p { margin: 0 0 .75rem; }
 .msg.them p:last-child { margin-bottom: 0; }
 
 .msg.me {
-  margin-left: auto;
+  align-self: flex-end;
   width: fit-content;
-  max-width: min(42ch, 85%);
-  background: var(--ink-deep);
+  max-width: min(42ch, 82%);
+  background: linear-gradient(135deg, #2a9bff 0%, var(--brand-deep) 100%);
   color: #fff;
-  padding: .6rem .95rem;
-  border-radius: 16px 16px 5px 16px;
-  font-size: .96rem;
+  padding: .65rem 1rem;
+  border-radius: 20px 20px 6px 20px;
+  box-shadow: 0 8px 22px -10px rgba(24, 139, 246, .7), inset 0 1px 0 rgba(255, 255, 255, .25);
+}
+.msg.reveal { animation: pop .38s var(--ease) both; }
+.msg.me.reveal { transform-origin: bottom right; }
+.msg.them.reveal { transform-origin: top left; }
+@keyframes pop {
+  from { opacity: 0; transform: translateY(6px) scale(.97); }
+  to   { opacity: 1; transform: none; }
 }
 
-/* The question, as a card in the conversation rather than a line in the
-   header. The count belongs here: "how many more of these are there" is
-   the question someone has three answers in, and it is worth nothing in
-   a corner they are not looking at.
+/* ── The question card ───────────────────────────────────── */
 
-   Choices are rows rather than chips because a row can be read down at a
-   glance and stays legible at six options on a phone, where a wrapped
-   line of pills does not. */
 .qcard {
   max-width: 60ch;
-  margin-bottom: 1.6rem;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
+  margin-bottom: 1rem;
+  border: 1px solid var(--glass-line);
+  border-radius: 22px;
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  box-shadow: var(--lift), var(--shine);
   overflow: hidden;
+  padding: .35rem;
 }
+/* The question on its own line; under it, the progress bar with the count at its end. */
 .qcard__head {
-  display: flex; align-items: baseline; gap: 1rem;
-  padding: .85rem .95rem;
+  display: flex; align-items: center; gap: .75rem;
+  padding: .85rem .85rem .75rem;
+  flex-wrap: wrap;
 }
-.qcard__head + .qcard__row { border-top: 1px solid var(--line); }
-.qcard__q { flex: 1; font-size: .98rem; line-height: 1.45; white-space: pre-wrap; }
-.qcard__count { font-size: .78rem; color: var(--faint); white-space: nowrap; }
+.qcard__q {
+  flex-basis: 100%;
+  font-size: 1.04rem; font-weight: 500; line-height: 1.4;
+  letter-spacing: -.01em;
+  white-space: pre-wrap;
+}
+.qcard__count {
+  order: 3;
+  font-size: .76rem; font-weight: 500; color: var(--brand-deep);
+  white-space: nowrap;
+  padding: .2rem .6rem; border-radius: 999px;
+  background: var(--brand-soft);
+}
+
+/* How far through the interview, as one segment per question. */
+.qcard__meter {
+  order: 2; flex: 1;
+  display: flex; gap: 3px;
+}
+.qcard__meter span {
+  flex: 1; height: 4px; border-radius: 99px;
+  background: rgba(12, 30, 51, .08);
+}
+.qcard__meter span.done { background: linear-gradient(90deg, #6fb8ff, var(--brand)); }
+.qcard__meter span.now { background: var(--brand); animation: now 1.6s ease-in-out infinite; }
+@keyframes now { 50% { opacity: .45; } }
 
 .qcard__row {
-  display: flex; align-items: center; gap: .7rem;
+  display: flex; align-items: center; gap: .75rem;
   width: 100%;
-  padding: .65rem .95rem;
-  border: 0;
+  padding: .55rem .75rem;
+  border: 1px solid transparent;
+  border-radius: 15px;
   background: none; color: inherit;
-  font: inherit; font-size: .93rem; text-align: left;
-  cursor: pointer; min-height: 48px;
-  transition: background .15s;
+  font: inherit; font-size: .95rem; text-align: left;
+  cursor: pointer; min-height: 50px;
+  transition: background .18s, border-color .18s, transform .18s var(--ease);
 }
-.qcard__row + .qcard__row { border-top: 1px solid var(--line); }
-.qcard__row:hover { background: var(--accent-bg); }
-.qcard__row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.qcard__row + .qcard__row { margin-top: 2px; }
+.qcard__row:hover {
+  background: rgba(255, 255, 255, .9);
+  border-color: var(--glass-line);
+  box-shadow: var(--lift-soft);
+}
+.qcard__row:active { transform: scale(.99); }
+.qcard__label { flex: 1; min-width: 0; }
 
-/* Indexes the list. The whole row is the target — this is a label, not a
-   keyboard shortcut, because the composer is focused and a digit typed
-   there has to stay a digit. */
+/* Index badge: a label for the list, not a keyboard shortcut. */
 .qcard__n {
   display: grid; place-items: center;
-  width: 26px; height: 26px; flex-shrink: 0;
-  border-radius: 7px;
-  background: var(--bg);
-  font-size: .78rem; color: var(--faint);
+  width: 30px; height: 30px; flex-shrink: 0;
+  border-radius: 10px;
+  background: rgba(12, 30, 51, .05);
+  font-size: .8rem; font-weight: 500; color: var(--muted);
+  transition: background .18s, color .18s;
 }
-.qcard__row--quiet { color: var(--muted); }
+.qcard__n .ph { font-size: 1rem; }
+.qcard__row:hover .qcard__n { background: var(--brand); color: #fff; }
 
-/* The platform date control, invisible and covering its whole row: the row
-   shows our own label, and a tap anywhere on it opens the native picker.
-   An <input type="date"> left to render itself is an unlabelled empty pill
-   on iOS, which is the other half of what was wrong here. */
+.qcard__go {
+  font-size: .95rem; color: var(--faint);
+  opacity: 0; transform: translateX(-4px);
+  transition: opacity .18s, transform .18s var(--ease);
+}
+.qcard__row:hover .qcard__go { opacity: 1; transform: none; color: var(--brand); }
+
+.qcard__row--quiet { color: var(--muted); }
+.qcard__row--quiet:hover .qcard__n { background: rgba(12, 30, 51, .1); color: var(--ink); }
+
+/* The confirm step after a date is picked. */
+.qcard__row--use { color: var(--brand-deep); font-weight: 500; }
+.qcard__row--use .qcard__n { background: var(--brand); color: #fff; }
+
+/* The platform date control, invisible and covering its whole row, so a tap
+   anywhere opens the native picker while the row shows our own label. */
 .qcard__row--date { position: relative; }
+.qcard__row--date .qcard__n { background: var(--brand-soft); color: var(--brand-deep); }
 .qcard__date {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
@@ -247,20 +423,15 @@ header.bar {
 }
 .qcard__aside {
   margin-left: auto;
-  font-size: .8rem; color: var(--muted);
-  border: 1px solid var(--line); border-radius: 8px;
-  padding: .25rem .55rem; background: var(--bg);
+  font-size: .8rem; font-weight: 500; color: var(--muted);
+  border: 1px solid var(--hairline); border-radius: 999px;
+  padding: .3rem .75rem; background: rgba(255, 255, 255, .7);
+  transition: background .18s, color .18s;
 }
+.qcard__aside:hover { background: #fff; color: var(--ink); }
 
-/* The slot the questions move through.
-
-   The interview used to stack a card per question down the transcript, so
-   by question seven the thing being asked was above the fold and what was
-   on screen was a wall of things already answered. One card in one place
-   asks one question, and answering it brings the next one in. What was
-   said is not lost — the read-back at the end is the record, and it is the
-   only version of it anyone needs to check. */
-.slot { position: relative; margin-bottom: .6rem; }
+/* The slot the questions move through, one card at a time. */
+.slot { position: relative; margin-bottom: .65rem; }
 .slot:empty { display: none; }
 .slot .qcard {
   margin-bottom: 0;
@@ -269,48 +440,54 @@ header.bar {
   overscroll-behavior: contain;
 }
 
-.qcard--in { animation: card-in .34s cubic-bezier(.22,.9,.28,1) both; }
+/* Under 400ms: showCard removes the old card on a 400ms timer. */
+.qcard--in { animation: card-in .38s var(--ease) both; }
 .qcard--out {
   position: absolute; inset: 0;
   animation: card-out .26s ease both;
   pointer-events: none;
 }
 @keyframes card-in {
-  from { opacity: 0; transform: translateX(34px); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translateX(28px) scale(.98); filter: blur(3px); }
+  to   { opacity: 1; transform: none; filter: none; }
 }
 @keyframes card-out {
   from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translateX(-34px); }
+  to   { opacity: 0; transform: translateX(-28px) scale(.98); filter: blur(3px); }
 }
 
-/* The read-back before anything is sent. Given a surface of its own —
-   it is the one thing on the page the customer is asked to check rather
-   than read, and it should not look like another message. */
+/* The read-back before anything is sent: something to check, not read. */
 .recap {
+  width: 100%;
   max-width: 60ch;
-  margin-bottom: 1.6rem;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
+  margin-bottom: 1rem;
+  border: 1px solid var(--glass-line);
+  border-radius: 20px;
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  box-shadow: var(--lift), var(--shine);
   overflow: hidden;
+  padding: .35rem 0;
 }
 .recap dl { margin: 0; display: grid; grid-template-columns: minmax(7.5rem, auto) 1fr; }
 .recap dt, .recap dd {
   margin: 0;
-  padding: .6rem .95rem;
-  border-bottom: 1px solid var(--line);
+  padding: .62rem 1rem;
+  border-bottom: 1px solid var(--hairline);
   font-size: .92rem;
 }
-.recap dt { color: var(--muted); font-size: .82rem; }
+.recap dt { color: var(--muted); font-size: .84rem; }
 .recap dd { color: var(--ink); font-weight: 500; overflow-wrap: anywhere; }
 .recap dl > :nth-last-child(-n+2) { border-bottom: 0; }
 .recap .pics {
-  padding: .6rem .95rem;
-  border-top: 1px solid var(--line);
-  font-size: .85rem;
+  display: flex; align-items: center; gap: .45rem;
+  padding: .65rem 1rem .4rem;
+  border-top: 1px solid var(--hairline);
+  font-size: .86rem;
   color: var(--muted);
 }
+.recap .pics .ph { font-size: 1.05rem; color: var(--brand); }
 @media (max-width: 480px) {
   .recap dl { grid-template-columns: 1fr; }
   .recap dt { padding-bottom: 0; border-bottom: 0; }
@@ -321,188 +498,237 @@ header.bar {
 .caret {
   display: inline-block;
   width: 2px; height: 1.05em;
-  background: var(--accent);
+  background: var(--brand);
+  border-radius: 2px;
   margin-left: 2px;
   vertical-align: -.18em;
   animation: blink 1.05s steps(2, start) infinite;
 }
 @keyframes blink { 50% { opacity: 0; } }
 
-.thinking { display: flex; gap: 4px; margin-bottom: 1.6rem; }
+.thinking {
+  align-self: flex-start;
+  display: flex; gap: 5px; align-items: center;
+  margin-bottom: 1rem;
+  padding: .85rem 1rem;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-line);
+  border-radius: 6px 20px 20px 20px;
+  box-shadow: var(--lift-soft), var(--shine);
+  animation: pop .3s var(--ease) both;
+}
 .thinking i {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--faint);
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--brand);
   animation: bob 1.2s ease-in-out infinite;
 }
 .thinking i:nth-child(2) { animation-delay: .15s; }
 .thinking i:nth-child(3) { animation-delay: .3s; }
-@keyframes bob { 0%,60%,100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-4px); } }
+@keyframes bob { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-4px); } }
 
-/* ── Composer ───────────────────────────────────────────── */
+/* ── Composer ─────────────────────────────────────────────── */
 
 footer.composer {
-  padding: .7rem var(--gut) calc(.9rem + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--line);
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(8px);
+  padding: .5rem var(--gut) calc(.75rem + env(safe-area-inset-bottom));
 }
 
-/* Choice chips and photo thumbnails sit above the input, so the
-   answer always appears in the same place whatever its shape. */
-.assist { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .6rem; }
+/* Photo thumbnails and the read-back's buttons sit above the input. */
+.assist { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; margin-bottom: .6rem; }
 .assist:empty { display: none; }
 
 .opt {
-  font: inherit; font-size: .87rem;
-  padding: .5rem .85rem;
+  display: inline-flex; align-items: center; gap: .45rem;
+  font: inherit; font-size: .9rem; font-weight: 500;
+  padding: 0 1rem; min-height: 42px;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--surface); color: var(--ink);
-  cursor: pointer; min-height: 40px;
-  transition: border-color .15s, background .15s;
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, #2a9bff 0%, var(--brand-deep) 100%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -10px rgba(24, 139, 246, .8), inset 0 1px 0 rgba(255, 255, 255, .3);
+  transition: transform .2s var(--ease), box-shadow .2s;
+  animation: pop .3s var(--ease) both;
 }
-.opt:hover { border-color: var(--accent); background: var(--accent-bg); }
-.opt.quiet { color: var(--muted); border-style: dashed; }
-.opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.opt .ph { font-size: 1.05rem; }
+.opt:hover { transform: translateY(-1px); box-shadow: 0 12px 24px -10px rgba(24, 139, 246, .9), inset 0 1px 0 rgba(255, 255, 255, .3); }
+.opt:active { transform: scale(.97); }
+.opt.quiet {
+  color: var(--muted);
+  background: var(--glass);
+  border-color: var(--glass-line);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--lift-soft), var(--shine);
+}
+.opt.quiet:hover { color: var(--ink); background: var(--glass-strong); }
 
 .box {
-  display: flex; align-items: flex-end; gap: .4rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-  padding: .3rem .3rem .3rem .85rem;
-  transition: border-color .15s, box-shadow .15s;
+  display: flex; align-items: flex-end; gap: .35rem;
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-line);
+  border-radius: 26px;
+  padding: .35rem .35rem .35rem 1.1rem;
+  box-shadow: var(--lift), var(--shine);
+  transition: box-shadow .25s, border-color .25s;
 }
-.box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
+.box:focus-within {
+  border-color: rgba(24, 139, 246, .45);
+  box-shadow: 0 0 0 4px var(--brand-soft), var(--lift), var(--shine);
+}
 
 .box textarea, .box input[type="date"] {
   flex: 1; border: 0; background: none; color: inherit;
   font: inherit; outline: none; resize: none;
-  padding: .55rem 0; max-height: 120px; line-height: 1.5;
+  padding: .6rem 0; max-height: 120px; line-height: 1.5;
   min-width: 0;
 }
 .box textarea::placeholder { color: var(--faint); }
 
 .icon {
-  width: 40px; height: 40px; flex: none;
-  border: 0; border-radius: 9px;
+  width: 42px; height: 42px; flex: none;
+  border: 0; border-radius: 50%;
   background: none; color: var(--muted);
   display: grid; place-items: center; cursor: pointer;
-  transition: background .15s, color .15s;
+  font-size: 1.3rem;
+  transition: background .18s, color .18s, transform .18s var(--ease);
 }
-.icon:hover { background: var(--accent-bg); color: var(--accent-dp); }
-.icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.icon svg { width: 19px; height: 19px; }
+.icon:hover { background: var(--brand-soft); color: var(--brand-deep); }
+.icon:active { transform: scale(.93); }
 
 .go {
-  width: 40px; height: 40px; flex: none;
-  border: 0; border-radius: 9px;
-  background: var(--ink-deep); color: #fff;
+  width: 42px; height: 42px; flex: none;
+  border: 0; border-radius: 50%;
+  background: linear-gradient(135deg, #2a9bff 0%, var(--brand-deep) 100%);
+  color: #fff;
   display: grid; place-items: center; cursor: pointer;
-  transition: opacity .15s, background .15s;
+  font-size: 1.2rem;
+  box-shadow: 0 6px 16px -6px rgba(24, 139, 246, .8), inset 0 1px 0 rgba(255, 255, 255, .3);
+  transition: transform .2s var(--spring), background .2s, box-shadow .2s, color .2s;
 }
-.go:hover:not(:disabled) { background: var(--accent-dp); }
-.go:disabled { opacity: .28; cursor: default; }
-.go:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.go svg { width: 18px; height: 18px; }
+.go:hover:not(:disabled) { transform: scale(1.06); }
+.go:active:not(:disabled) { transform: scale(.94); }
+.go:disabled {
+  cursor: default;
+  background: rgba(12, 30, 51, .07);
+  color: var(--faint);
+  box-shadow: none;
+}
 
 .foot {
-  margin: .55rem 0 0; text-align: center;
-  font-size: .74rem; color: var(--faint);
+  display: flex; align-items: center; justify-content: center; gap: .35rem;
+  margin: .6rem 0 0;
+  font-size: .78rem; color: var(--muted);
 }
-.foot a { color: inherit; }
+.foot .ph { font-size: .95rem; color: var(--brand); }
+.foot a { color: var(--ink); font-weight: 500; text-decoration: none; }
+.foot a:hover { text-decoration: underline; }
 
-/* Builder credit. Deliberately the quietest thing on the page — this is
-   Splendid Moving's chat, and the badge should be findable rather than
-   noticeable. */
-.by { margin: .3rem 0 0; text-align: center; font-size: .7rem; }
-.by a {
-  color: var(--faint);
-  text-decoration: none;
-  letter-spacing: .01em;
-  transition: color .15s;
-}
-.by a:hover { color: var(--accent); text-decoration: underline; }
-.by a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+/* Builder credit: findable, not noticeable. */
+.by { margin: .25rem 0 0; text-align: center; font-size: .7rem; }
+.by a { color: var(--faint); text-decoration: none; transition: color .15s; }
+.by a:hover { color: var(--brand); text-decoration: underline; }
 
 /* Photo thumbnails */
 .shot {
-  position: relative; width: 54px; height: 54px;
-  border-radius: 9px; overflow: hidden; border: 1px solid var(--line);
-  animation: rise .3s cubic-bezier(.22,.9,.28,1) both;
+  position: relative; width: 58px; height: 58px;
+  border-radius: 14px; overflow: hidden;
+  border: 2px solid #fff;
+  box-shadow: var(--lift-soft);
+  animation: pop .3s var(--ease) both;
 }
 .shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.shot.pending { opacity: .4; }
+.shot.pending img { opacity: .4; }
+.shot.pending::after {
+  content: ""; position: absolute; inset: 0; margin: auto;
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .9); border-top-color: var(--brand);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 .shot button {
-  position: absolute; top: 2px; right: 2px;
-  width: 19px; height: 19px; border: 0; border-radius: 50%;
-  background: rgba(3,36,73,.82); color: #fff;
-  font-size: .72rem; line-height: 1; cursor: pointer; padding: 0;
+  position: absolute; top: 3px; right: 3px;
+  width: 20px; height: 20px; border: 0; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(6, 42, 82, .72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #fff; font-size: .7rem; cursor: pointer; padding: 0;
 }
 
-.warn { color: var(--danger); font-size: .82rem; flex-basis: 100%; }
+.warn {
+  display: flex; align-items: center; gap: .35rem;
+  color: var(--danger); font-size: .84rem; flex-basis: 100%;
+}
+
+/* One focus style for everything you can tab to. */
+:is(.linkbtn, .chip, .qcard__row, .qcard__aside, .opt, .icon, .go, .shot button, .foot a, .by a):focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.qcard__row:focus-visible { outline-offset: -2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .reveal { opacity: 1; }
 }
 </style>
 </head>
 <body>
 
+<div class="backdrop" aria-hidden="true"><span></span><span></span><span></span></div>
+
 <div class="app">
   <header class="bar">
     <div class="avatar" aria-hidden="true">{{AGENT_INITIAL}}</div>
     <div>
-      <div class="who-name">{{AGENT_NAME}} · Splendid Moving</div>
+      <div class="who-name">{{AGENT_NAME}} at Splendid Moving</div>
       <div class="who-sub"><span class="dot"></span> Replies instantly</div>
     </div>
     <div class="grow"></div>
-    <button class="linkbtn" id="restart" type="button">Start over</button>
+    <button class="linkbtn" id="restart" type="button"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i><span class="linkbtn__label">Start over</span></button>
     <div class="rail"><i id="rail"></i></div>
   </header>
 
   <main class="thread" id="thread" role="log" aria-live="polite" aria-label="Conversation">
     <div class="hello" id="hello">
-      <h1 class="reveal">Hi, I'm <em>{{AGENT_NAME}}</em>.</h1>
-      <p class="reveal" style="animation-delay:.1s">
+      <div class="hello__avatar reveal" aria-hidden="true">{{AGENT_INITIAL}}</div>
+      <h1 class="reveal" style="animation-delay:.08s">Hi, I'm {{AGENT_NAME}}.</h1>
+      <p class="reveal" style="animation-delay:.16s">
         I'm in the office here at Splendid Moving. Ask me anything about your
         move, or I'll take a few details and get you a real estimate.
       </p>
-      <!-- Two things people came to do, then the four questions they actually
-           ask. Every one of these is answered outright by knowledge/ — a
-           suggestion that leads to "I'm not sure, let me have someone call
-           you" is worse than no suggestion. -->
-      <div class="chips reveal" style="animation-delay:.2s">
-        <button class="chip" type="button">I'd like an estimate</button>
-        <button class="chip" type="button">How much do you charge?</button>
-        <button class="chip" type="button">Moving out of state</button>
-        <button class="chip" type="button">What's included?</button>
-        <button class="chip" type="button">Any hidden fees?</button>
-        <button class="chip" type="button">Is my stuff insured?</button>
+      <!-- The estimate, then the questions people actually ask. Every one is
+           answered outright by knowledge/. The chip's text is the message sent,
+           so icons stay aria-hidden and contribute no text. -->
+      <div class="chips reveal" style="animation-delay:.24s">
+        <button class="chip chip--primary" type="button"><span class="chip__icon" aria-hidden="true"><i class="ph ph-calculator"></i></span>I'd like an estimate<i class="ph ph-arrow-right chip__go" aria-hidden="true"></i></button>
+        <button class="chip" type="button"><i class="ph ph-currency-dollar" aria-hidden="true"></i>How much do you charge?</button>
+        <button class="chip" type="button"><i class="ph ph-truck" aria-hidden="true"></i>Moving out of state</button>
+        <button class="chip" type="button"><i class="ph ph-package" aria-hidden="true"></i>What's included?</button>
+        <button class="chip" type="button"><i class="ph ph-receipt" aria-hidden="true"></i>Any hidden fees?</button>
+        <button class="chip" type="button"><i class="ph ph-shield-check" aria-hidden="true"></i>Is my stuff insured?</button>
       </div>
     </div>
   </main>
 
   <footer class="composer">
-    <!-- The interview happens here, not in the transcript. One card, held
-         above the composer, that each question moves through in turn. -->
+    <!-- The interview happens here: one card, held above the composer. -->
     <div class="slot" id="slot" aria-live="polite"></div>
     <div class="assist" id="assist"></div>
     <div class="box" id="box">
       <textarea id="input" rows="1" placeholder="Ask about your move…"
                 aria-label="Your message" autocomplete="off"></textarea>
       <button class="icon" id="clip" type="button" aria-label="Add photos" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+        <i class="ph ph-paperclip" aria-hidden="true"></i>
       </button>
       <input type="file" id="picker" accept="image/*" multiple hidden />
       <button class="go" id="send" type="button" aria-label="Send" disabled>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+        <i class="ph ph-arrow-up" aria-hidden="true"></i>
       </button>
     </div>
-    <p class="foot">Or call any day, 6am–11pm — <a href="tel:+13236452636">(323) 645-2636</a></p>
+    <p class="foot"><i class="ph ph-phone" aria-hidden="true"></i>Or call any day, 6am–11pm: <a href="tel:+13236452636">(323) 645-2636</a></p>
     <p class="by"><a href="https://simple-flow.co" target="_blank" rel="noopener noreferrer">Built by Simple&nbsp;Flow</a></p>
   </footer>
 </div>
@@ -542,6 +768,14 @@ let busy = false;
 let asking = null;      // the question the agent is currently waiting on
 let photos = [];        // [{id, url}] for the photo step
 
+/** A Phosphor icon, hidden from screen readers and from innerText. */
+function icon(name) {
+  const i = document.createElement("i");
+  i.className = "ph ph-" + name;
+  i.setAttribute("aria-hidden", "true");
+  return i;
+}
+
 /* ── Rendering ─────────────────────────────────────────────── */
 
 function stripHello() { const h = el("hello"); if (h) h.remove(); }
@@ -577,11 +811,10 @@ function scroll() {
 }
 
 /**
- * The hairline across the top of the header.
+ * The hairline across the bottom of the header.
  *
  * Ambient only. The number a customer actually wants — "3 of 9" — is on the
- * question card, where they are already looking; up here it was a corner
- * nobody reads.
+ * question card, where they are already looking.
  */
 function progress(step, total) {
   rail.style.width = step && total ? Math.round((step / total) * 100) + "%" : "0";
@@ -691,11 +924,9 @@ function openQuestion(ask) {
   stripHello();
 
   if (ask.type === "confirm") {
-    // The read-back is not a question, it is the record — the only place the
-    // answers appear now that each one is replaced by the next. It goes in the
-    // transcript, where it can be as long as it needs to be and scrolls with
-    // the page. Held in the slot it was capped at 58vh and quietly cut off
-    // halfway down the one screen the customer is asked to check.
+    // The read-back is the record of every answer, so it goes in the
+    // transcript where it can be as long as it needs to be and scrolls with
+    // the page, rather than in the height-capped slot.
     clearSlot();
     bubble("them", ask.message);
     thread.appendChild(recap(ask));
@@ -736,6 +967,20 @@ function clearSlot() {
   setTimeout(() => leaving.remove(), 400);
 }
 
+/** One segment per question: answered, current, still to come. */
+function meter(step, total) {
+  const bar = document.createElement("div");
+  bar.className = "qcard__meter";
+  bar.setAttribute("aria-hidden", "true");
+  for (let n = 1; n <= total; n++) {
+    const segment = document.createElement("span");
+    if (n < step) segment.className = "done";
+    else if (n === step) segment.className = "now";
+    bar.appendChild(segment);
+  }
+  return bar;
+}
+
 /**
  * One question, as a card.
  *
@@ -766,6 +1011,7 @@ function questionCard(ask) {
     count.className = "qcard__count";
     count.textContent = ask.step_label || ask.step + " / " + ask.total;
     head.appendChild(count);
+    head.appendChild(meter(ask.step, ask.total));
   }
   card.appendChild(head);
 
@@ -777,7 +1023,8 @@ function questionCard(ask) {
     if (opts.badge !== false) {
       const badge = document.createElement("span");
       badge.className = "qcard__n";
-      badge.textContent = opts.index || (opts.quiet ? "✎" : "");
+      if (opts.index) badge.textContent = opts.index;
+      else if (opts.icon) badge.appendChild(icon(opts.icon));
       r.appendChild(badge);
     }
 
@@ -791,6 +1038,10 @@ function questionCard(ask) {
       aside.className = "qcard__aside";
       aside.textContent = opts.aside;
       r.appendChild(aside);
+    } else if (opts.index) {
+      const go = icon("caret-right");
+      go.classList.add("qcard__go");
+      r.appendChild(go);
     }
     r.addEventListener("click", opts.onClick);
     card.appendChild(r);
@@ -808,6 +1059,7 @@ function questionCard(ask) {
     // The message box never goes away, and this says so.
     row(t("something_else", "Something else"), {
       quiet: true,
+      icon: "pencil-simple",
       aside: ask.skippable ? t("skip", "Skip") : "",
       onClick: (e) => {
         // The Skip pill sits inside the row, so which half was tapped matters.
@@ -822,13 +1074,11 @@ function questionCard(ask) {
     /*
      * Two taps, deliberately.
      *
-     * This used to be a bare <input type="date"> above the composer that
-     * submitted on `change`. On iOS that renders as an empty pill, and the
-     * wheel fires `change` the moment it settles on a value — so opening the
-     * picker at all answered the question, with whatever date the wheel
-     * happened to land on. Picking and confirming are now separate.
+     * On iOS the date wheel fires `change` the moment it settles on a value,
+     * so answering on `change` answered the question with whatever date the
+     * wheel happened to land on. Picking and confirming are separate.
      */
-    const pick = row(t("pick_date", "Pick a date"), { badge: false, onClick: () => {} });
+    const pick = row(t("pick_date", "Pick a date"), { icon: "calendar-blank", onClick: () => {} });
     pick.classList.add("qcard__row--date");
 
     const day = document.createElement("input");
@@ -838,9 +1088,10 @@ function questionCard(ask) {
     pick.appendChild(day);
 
     const confirm = row(t("use_date", "Use this date"), {
-      badge: false,
+      icon: "check",
       onClick: () => { if (day.value) answer({ answer: day.value }); },
     });
+    confirm.classList.add("qcard__row--use");
     confirm.hidden = true;
 
     day.addEventListener("change", () => {
@@ -852,12 +1103,12 @@ function questionCard(ask) {
     });
 
     const notSure = t("not_sure", "Not sure yet");
-    row(notSure, { badge: false, quiet: true, onClick: () => answer({ skip: true }) });
+    row(notSure, { quiet: true, icon: "question", onClick: () => answer({ skip: true }) });
   } else if (ask.skippable && ask.type !== "photos") {
     // Photos keep their skip beside the thumbnails, where the picker is, and
     // the date step's skip is "Not sure yet" — a second, blanker one next to it
     // is two ways to say the same thing.
-    row(t("skip", "Skip"), { quiet: true, onClick: () => answer({ skip: true }) });
+    row(t("skip", "Skip"), { quiet: true, icon: "arrow-bend-up-right", onClick: () => answer({ skip: true }) });
   }
 
   return card;
@@ -883,7 +1134,7 @@ function recap(ask) {
     pics.className = "pics";
     // Built server-side: pluralisation is a per-language rule and this is the
     // one string where getting it wrong is visible.
-    pics.textContent = ask.photos_line || ask.photo_count + " photos attached";
+    pics.append(icon("images"), ask.photos_line || ask.photo_count + " photos attached");
     card.appendChild(pics);
   }
 
@@ -903,12 +1154,9 @@ function setComposer(ask) {
   clip.hidden = true;
   input.disabled = false;
 
-  // Not every step has a field. The photo step and the read-back are their own
-  // kinds of turn, and reading `.kind` off the field they do not have threw
-  // right here — inside the `finally` that re-dresses the composer, so the
-  // read-back arrived with its "Send it over" button never rendered and no
-  // error visible anywhere. The step the whole interview leads to was the one
-  // step you could not complete.
+  // Not every step has a field: the photo step and the read-back are their own
+  // kinds of turn. This runs inside exchange()'s `finally`, so a throw here
+  // would silently leave the composer without its buttons.
   const field = (ask && ask.field) || null;
   const kind = !ask ? "chat" : field ? field.kind : ask.type;
 
@@ -925,14 +1173,14 @@ function setComposer(ask) {
     : ask ? t("type_answer", "Type your answer…")
     : "Ask about your move…";
 
-  // Choices and Skip live on the question card now, not down here. Only the
-  // things that need this end of the screen — the date picker, the file
-  // picker, the read-back's buttons — are still rendered into `assist`.
+  // Choices and Skip live on the question card. Only the things that need this
+  // end of the screen — the file picker and the read-back's buttons — are
+  // rendered into `assist`.
 
   if (kind === "confirm") {
     const send = t("send", "Send it over"), over = t("restart", "Start over");
-    assist.appendChild(button(send, () => answer({ confirmed: true })));
-    assist.appendChild(button(over, () => answer({ restart: true }), true));
+    assist.appendChild(button(send, () => answer({ confirmed: true }), false, "paper-plane-tilt"));
+    assist.appendChild(button(over, () => answer({ restart: true }), true, "arrow-counter-clockwise"));
     input.placeholder = t("or_change", "Or tell me what to change…");
     sync();
     return;
@@ -944,9 +1192,9 @@ function setComposer(ask) {
     if (photos.some((p) => p.id)) {
       assist.appendChild(button(t("send_photos", "Send these"), () => {
         answer({ photo_ids: photos.filter((p) => p.id).map((p) => p.id) });
-      }));
+      }, false, "check"));
     } else {
-      assist.appendChild(button(t("add_photos", "Add photos"), () => picker.click()));
+      assist.appendChild(button(t("add_photos", "Add photos"), () => picker.click(), false, "camera"));
     }
     const later = t("skip_photos", "Skip for now");
     assist.appendChild(button(later, () => answer({ photo_ids: [] }), true));
@@ -955,11 +1203,12 @@ function setComposer(ask) {
   sync();
 }
 
-function button(label, onClick, quiet) {
+function button(label, onClick, quiet, iconName) {
   const b = document.createElement("button");
   b.type = "button";
   b.className = "opt" + (quiet ? " quiet" : "");
-  b.textContent = label;
+  if (iconName) b.appendChild(icon(iconName));
+  b.appendChild(document.createTextNode(label));
   b.addEventListener("click", onClick);
   return b;
 }
@@ -974,10 +1223,9 @@ function prettyDate(iso) {
  * Answer whatever is on the card.
  *
  * Deliberately no echo into the transcript. The question is replaced by the
- * next one rather than scrolling away above it, and an answer left behind on
- * its own — "90026", "Nik" — is a column of orphaned fragments with nothing to
- * say what they were. The read-back at the end is where the answers are
- * checked, and it shows every one of them with its label.
+ * next one, and an answer left behind on its own — "90026", "Nik" — is a
+ * fragment with nothing to say what it was. The read-back at the end shows
+ * every answer with its label.
  */
 function answer(reply) {
   if (reply.photo_ids) photos = [];
@@ -1034,7 +1282,8 @@ function renderShots() {
     cell.appendChild(img);
     if (photo.id) {
       const x = document.createElement("button");
-      x.type = "button"; x.textContent = "×";
+      x.type = "button";
+      x.appendChild(icon("x"));
       x.setAttribute("aria-label", "Remove photo");
       x.addEventListener("click", () => {
         URL.revokeObjectURL(photo.url);
@@ -1070,7 +1319,8 @@ async function addPhotos(files) {
       setComposer(asking);
       const warn = document.createElement("div");
       warn.className = "warn";
-      warn.textContent = err.message;
+      warn.appendChild(icon("warning-circle"));
+      warn.appendChild(document.createTextNode(err.message));
       assist.appendChild(warn);
       setTimeout(() => warn.remove(), 5000);
     }

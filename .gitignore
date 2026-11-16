@@ -9,3 +9,5 @@ __pycache__/
 *.sqlite-wal
 .uploads/
 .DS_Store
+
+node_modules/
