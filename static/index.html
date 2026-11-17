@@ -3,48 +3,41 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#eef3fb" />
+<meta name="theme-color" content="#fbfbfa" />
 <title>Splendid Moving — chat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/light/style.css">
 <style>
 /* ─────────────────────────────────────────────────────────────
-   The customer chat page: frosted-glass panels over a soft,
-   slowly drifting field of Splendid blue. One sans family, one
-   accent, icons from Phosphor. On desktop the chat floats as a
-   glass window; on a phone it fills the screen.
+   The customer chat page. Flat and neutral: an off-white page,
+   white surfaces with hairline borders, near-black for text and
+   the one primary button, grey for everything secondary. The
+   agent's answers read as plain text under a small name label;
+   the customer's messages sit in soft grey bubbles. Thin
+   Phosphor icons, one sans family, small fades for motion.
    ───────────────────────────────────────────────────────────── */
 
 :root {
-  --page:        #eef3fb;
-  --ink:         #0c1e33;
-  --ink-deep:    #062a52;
-  --muted:       #56657a;
-  --faint:       #8b97a8;
+  --page:        #fbfbfa;
+  --surface:     #ffffff;
+  --ink:         #1b1c1e;
+  --text:        #2b2c2f;
+  --muted:       #6f7277;
+  --faint:       #a2a5aa;
+  --line:        #e8e8e5;
+  --line-strong: #d6d6d2;
+  --fill:        #f3f3f1;
+  --fill-strong: #e9e9e6;
+  --danger:      #b42318;
 
-  --brand:       #188bf6;
-  --brand-deep:  #0b63c4;
-  --brand-soft:  rgba(24, 139, 246, .10);
-  --brand-ring:  rgba(24, 139, 246, .28);
-  --danger:      #b23c26;
+  --shadow: 0 1px 2px rgba(20, 20, 20, .04), 0 6px 20px -8px rgba(20, 20, 20, .08);
 
-  /* Glass: a translucent white with a bright top edge and a navy-tinted shadow. */
-  --glass:        rgba(255, 255, 255, .58);
-  --glass-strong: rgba(255, 255, 255, .78);
-  --glass-line:   rgba(255, 255, 255, .85);
-  --hairline:     rgba(12, 30, 51, .07);
-  --blur:         blur(22px) saturate(1.6);
-  --lift: 0 1px 1px rgba(6, 42, 82, .04), 0 8px 24px -6px rgba(6, 42, 82, .12), 0 24px 60px -24px rgba(6, 42, 82, .18);
-  --lift-soft: 0 1px 1px rgba(6, 42, 82, .03), 0 6px 18px -8px rgba(6, 42, 82, .14);
-  --shine: inset 0 1px 0 rgba(255, 255, 255, .9);
-
-  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --gut: clamp(1rem, 4.5vw, 1.75rem);
-  --ease: cubic-bezier(.22, .9, .28, 1);
-  --spring: cubic-bezier(.34, 1.4, .64, 1);
+  --sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --gut: clamp(1rem, 4.5vw, 1.5rem);
+  --column: 44rem;
+  --ease: cubic-bezier(.2, .8, .2, 1);
 
   color-scheme: light;
 }
@@ -60,144 +53,76 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   font-size: 16px;
-  line-height: 1.55;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
 
-.ph, .ph-fill { line-height: 1; }
-
-/* ── Backdrop: the light the glass sits in ───────────────── */
-
-.backdrop {
-  position: fixed; inset: 0; z-index: 0;
-  overflow: hidden; pointer-events: none;
-  background:
-    radial-gradient(120% 80% at 50% -10%, #ffffff 0%, transparent 60%),
-    linear-gradient(180deg, #f4f7fc 0%, #e8eef8 100%);
-}
-.backdrop span {
-  position: absolute; border-radius: 50%;
-  filter: blur(70px); opacity: .55;
-  animation: drift 26s ease-in-out infinite alternate;
-}
-.backdrop span:nth-child(1) { width: 46vmax; height: 46vmax; left: -14vmax; top: -12vmax; background: #9cc9ff; }
-.backdrop span:nth-child(2) { width: 38vmax; height: 38vmax; right: -12vmax; top: 18vh; background: #c7d3ff; animation-duration: 32s; animation-delay: -8s; }
-.backdrop span:nth-child(3) { width: 34vmax; height: 34vmax; left: 20vw; bottom: -16vmax; background: #7fb8fa; opacity: .4; animation-duration: 38s; animation-delay: -14s; }
-@keyframes drift {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to   { transform: translate3d(6vmax, 4vmax, 0) scale(1.12); }
-}
-
-/* ── Shell ────────────────────────────────────────────────── */
+.ph-light { line-height: 1; }
 
 .app {
-  position: relative; z-index: 1;
   height: 100dvh;
-  max-width: 760px;
-  margin: 0 auto;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
-/* On a wide screen the chat is a floating glass window. */
-@media (min-width: 820px) {
-  .app {
-    height: calc(100dvh - 48px);
-    margin: 24px auto;
-    border-radius: 28px;
-    background: rgba(255, 255, 255, .42);
-    backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
-    border: 1px solid var(--glass-line);
-    box-shadow: var(--lift), var(--shine);
-    overflow: hidden;
-  }
-}
+/* Header, thread and composer all share one centered column. */
+.column { width: 100%; max-width: var(--column); margin: 0 auto; padding: 0 var(--gut); }
 
 /* ── Header ───────────────────────────────────────────────── */
 
 header.bar {
   position: relative;
-  display: flex; align-items: center; gap: .8rem;
-  padding: calc(.8rem + env(safe-area-inset-top)) var(--gut) .8rem;
-  background: var(--glass);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  border-bottom: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--line);
+  background: var(--page);
 }
-@media (min-width: 820px) {
-  header.bar { background: rgba(255, 255, 255, .35); padding-top: .9rem; }
+.bar .column {
+  display: flex; align-items: center; gap: .7rem;
+  padding-top: calc(.75rem + env(safe-area-inset-top));
+  padding-bottom: .75rem;
 }
 
 .avatar {
-  position: relative;
-  width: 40px; height: 40px; flex: none;
+  width: 32px; height: 32px; flex: none;
   border-radius: 50%;
-  background: linear-gradient(145deg, #2a9bff 0%, var(--ink-deep) 100%);
-  color: #fff;
+  background: var(--ink); color: #fff;
   display: grid; place-items: center;
-  font-size: .92rem; font-weight: 600;
-  box-shadow: 0 4px 14px -4px rgba(24, 139, 246, .55), inset 0 1px 0 rgba(255, 255, 255, .35);
-}
-.avatar::after {
-  content: ""; position: absolute; right: -1px; bottom: -1px;
-  width: 11px; height: 11px; border-radius: 50%;
-  background: var(--brand); border: 2px solid #fff;
+  font-size: .8rem; font-weight: 600;
 }
 
-.who-name { font-weight: 600; font-size: .97rem; letter-spacing: -.015em; line-height: 1.25; }
+.who-name { font-weight: 600; font-size: .93rem; letter-spacing: -.01em; line-height: 1.3; white-space: nowrap; }
 .who-sub {
   display: flex; align-items: center; gap: .4rem;
-  font-size: .8rem; color: var(--muted);
+  font-size: .78rem; color: var(--muted); line-height: 1.3;
 }
-.dot {
-  width: 6px; height: 6px; border-radius: 50%; background: var(--brand);
-  box-shadow: 0 0 0 0 var(--brand-ring);
-  animation: pulse 2.4s ease-out infinite;
-}
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(24, 139, 246, .45); }
-  70%, 100% { box-shadow: 0 0 0 7px rgba(24, 139, 246, 0); }
-}
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #3f9b6b; }
 
 .bar .grow { flex: 1; }
 
+/* A ghost button: no fill until you point at it. */
 .linkbtn {
   display: inline-flex; align-items: center; gap: .4rem;
-  border: 1px solid var(--glass-line);
-  background: rgba(255, 255, 255, .55);
-  font: inherit; font-size: .84rem; font-weight: 500; color: var(--muted);
-  padding: 0 .85rem; min-height: 38px; border-radius: 999px;
-  cursor: pointer;
-  box-shadow: var(--lift-soft), var(--shine);
-  transition: color .2s, background .2s, transform .2s var(--ease);
+  border: 1px solid var(--line); background: var(--surface);
+  font: inherit; font-size: .84rem; font-weight: 500; color: var(--text);
+  padding: 0 .8rem; min-height: 36px; border-radius: 999px;
+  cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s;
 }
-.linkbtn .ph { font-size: 1rem; transition: transform .5s var(--ease); }
-.linkbtn { white-space: nowrap; }
-.linkbtn:hover { color: var(--ink); background: rgba(255, 255, 255, .85); }
-/* On a phone the label would wrap; keep it for screen readers, show the icon. */
+.linkbtn .ph-light { font-size: 1rem; }
+.linkbtn:hover { background: var(--fill); border-color: var(--line-strong); }
 @media (max-width: 480px) {
-  .linkbtn { width: 40px; height: 40px; padding: 0; justify-content: center; }
-  .linkbtn .ph { font-size: 1.15rem; }
+  .linkbtn { width: 36px; height: 36px; padding: 0; justify-content: center; }
   .linkbtn__label {
     position: absolute; width: 1px; height: 1px; overflow: hidden;
     clip: rect(0 0 0 0); white-space: nowrap;
   }
 }
-.who-name { white-space: nowrap; }
-.linkbtn:hover .ph { transform: rotate(-200deg); }
-.linkbtn:active { transform: scale(.97); }
 
-/* Progress across the bottom of the header during the interview. */
-.rail {
-  position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
-  background: transparent; overflow: hidden;
-}
+/* Progress along the bottom of the header during the interview. */
+.rail { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; }
 .rail i {
   display: block; height: 100%; width: 0;
-  background: linear-gradient(90deg, #7cc0ff, var(--brand));
-  border-radius: 0 2px 2px 0;
+  background: var(--ink);
   transition: width .5s var(--ease);
 }
 
@@ -206,215 +131,201 @@ header.bar {
 .thread {
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: clamp(1.5rem, 6vw, 2.5rem) var(--gut) 1rem;
   scrollbar-width: thin;
-  scrollbar-color: rgba(12, 30, 51, .15) transparent;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.thread::-webkit-scrollbar { width: 7px; }
+.thread::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 99px; }
+
+.thread .column {
+  min-height: 100%;
   display: flex; flex-direction: column;
+  padding-top: clamp(1.25rem, 5vw, 2.25rem);
+  padding-bottom: 1rem;
 }
 /* Nothing in the transcript may shrink to fit: a flex item with overflow:hidden
    (the read-back) otherwise squashes and cuts off instead of scrolling. */
-.thread > * { flex-shrink: 0; }
-.thread::-webkit-scrollbar { width: 7px; }
-.thread::-webkit-scrollbar-thumb { background: rgba(12, 30, 51, .15); border-radius: 99px; }
+.thread .column > * { flex-shrink: 0; }
 
-/* Opening screen */
-.hello { max-width: 34rem; margin: auto 0 1.5rem; padding-top: 1rem; }
-.hello__avatar {
-  width: 56px; height: 56px; border-radius: 18px;
-  display: grid; place-items: center;
-  background: linear-gradient(145deg, #2a9bff 0%, var(--ink-deep) 100%);
-  color: #fff; font-size: 1.35rem; font-weight: 600;
-  box-shadow: 0 12px 30px -10px rgba(24, 139, 246, .6), inset 0 1px 0 rgba(255, 255, 255, .35);
-  margin-bottom: 1.35rem;
+/* Opening screen: a greeting, two ways to start an estimate, then the
+   questions people ask most, as a quiet list. Left-aligned, like the replies. */
+.hello {
+  margin: auto 0;
+  padding: 1rem 0 1.5rem;
 }
 .hello h1 {
-  font-weight: 600;
-  font-size: clamp(2rem, 7.5vw, 2.7rem);
-  line-height: 1.06;
-  letter-spacing: -.04em;
-  color: var(--ink-deep);
-  margin: 0 0 .65rem;
+  margin: 0 0 .45rem;
+  font-weight: 500;
+  font-size: clamp(1.65rem, 5.5vw, 2rem);
+  line-height: 1.15;
+  letter-spacing: -.025em;
 }
-.hello p { margin: 0; color: var(--muted); font-size: 1.02rem; max-width: 30rem; }
+.hello p {
+  margin: 0; max-width: 30rem;
+  color: var(--muted); font-size: 1rem; line-height: 1.55;
+}
 
-.chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.6rem; }
-.chip {
-  display: inline-flex; align-items: center; gap: .5rem;
-  font: inherit; font-size: .9rem; font-weight: 500;
-  padding: 0 1rem 0 .8rem; min-height: 44px;
-  border-radius: 999px;
-  border: 1px solid var(--glass-line);
-  background: var(--glass);
-  backdrop-filter: blur(14px) saturate(1.5);
-  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+/* Two start tiles side by side; they become two full rows on a narrow phone. */
+.starts {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .6rem;
+  margin-top: 1.6rem;
+}
+.chip--start {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
+  gap: 1.4rem;
+  min-height: 96px; padding: .9rem 1rem;
+  font: inherit; font-size: .95rem; font-weight: 500; text-align: left;
   color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
   cursor: pointer;
-  box-shadow: var(--lift-soft), var(--shine);
-  transition: transform .25s var(--ease), background .2s, box-shadow .25s;
+  transition: background .15s, border-color .15s, transform .15s var(--ease);
 }
-.chip .ph { font-size: 1.1rem; color: var(--brand); }
-.chip:hover { background: var(--glass-strong); transform: translateY(-2px); box-shadow: var(--lift), var(--shine); }
-.chip:active { transform: translateY(0) scale(.98); }
+.chip--start .ph-light { font-size: 1.35rem; color: var(--muted); }
+.chip--start:hover { border-color: var(--line-strong); background: var(--fill); }
+.chip--start:active { transform: scale(.985); }
 
-/* The main thing people came to do gets the one solid button. */
-.chip--primary {
-  flex-basis: 100%;
-  justify-content: flex-start;
-  min-height: 56px; padding: 0 1.1rem 0 .7rem;
-  font-size: 1rem; font-weight: 600;
-  color: #fff; border-color: transparent;
-  background: linear-gradient(135deg, #2a9bff 0%, var(--brand-deep) 100%);
-  box-shadow: 0 10px 28px -10px rgba(24, 139, 246, .75), inset 0 1px 0 rgba(255, 255, 255, .3);
-}
-.chip--primary .chip__icon {
-  width: 38px; height: 38px; border-radius: 12px;
-  display: grid; place-items: center;
-  background: rgba(255, 255, 255, .18);
-}
-.chip--primary .ph { color: #fff; font-size: 1.2rem; }
-.chip--primary .chip__go { margin-left: auto; transition: transform .25s var(--ease); }
-.chip--primary:hover { background: linear-gradient(135deg, #3aa4ff 0%, #0d6ad0 100%); box-shadow: 0 14px 32px -10px rgba(24, 139, 246, .85), inset 0 1px 0 rgba(255, 255, 255, .3); }
-.chip--primary:hover .chip__go { transform: translateX(3px); }
-@media (min-width: 560px) {
-  .chip--primary { flex-basis: auto; padding-right: 1.25rem; }
+/* The one thing most people came to do. */
+.chip--primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+.chip--primary .ph-light { color: rgba(255, 255, 255, .75); }
+.chip--primary:hover { background: #2f3034; border-color: #2f3034; }
+
+@media (max-width: 400px) {
+  .starts { grid-template-columns: 1fr; }
+  .chip--start { flex-direction: row; align-items: center; justify-content: flex-start; gap: .7rem; min-height: 56px; }
 }
 
-/* The one orchestrated entrance: the opening screen, in sequence. */
-.reveal { animation: rise .55s var(--ease) both; }
-@keyframes rise {
-  from { opacity: 0; transform: translateY(10px); filter: blur(4px); }
-  to   { opacity: 1; transform: none; filter: none; }
+/* Common questions: rows divided by hairlines, an arrow on the right. */
+.asked { margin-top: 1.75rem; }
+.asked h2 {
+  margin: 0 0 .3rem;
+  font-size: .8rem; font-weight: 500; color: var(--muted);
+}
+.chip--ask {
+  display: flex; align-items: center; gap: .75rem;
+  width: 100%; min-height: 48px; padding: 0 .25rem;
+  font: inherit; font-size: .95rem; color: var(--text); text-align: left;
+  background: none; border: 0; border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: color .15s;
+}
+.chip--ask:last-child { border-bottom: 0; }
+.chip--ask .ph-light { font-size: 1.1rem; color: var(--faint); transition: color .15s, transform .15s var(--ease); }
+.chip--ask .ph-arrow-right { margin-left: auto; font-size: 1rem; }
+.chip--ask:hover { color: var(--ink); }
+.chip--ask:hover .ph-light { color: var(--ink); }
+.chip--ask:hover .ph-arrow-right { transform: translateX(2px); }
+
+.reveal { animation: fade .35s var(--ease) both; }
+@keyframes fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* Messages */
-.msg { margin-bottom: 1rem; max-width: min(60ch, 88%); font-size: .97rem; }
+.msg { margin-bottom: 1.5rem; font-size: .98rem; }
+
+/* The agent's reply: plain text under a small name label, no bubble. */
 .msg.them {
-  align-self: flex-start;
+  align-self: stretch;
+  max-width: 62ch;
   white-space: pre-wrap;
-  padding: .75rem 1rem;
-  background: var(--glass-strong);
-  border: 1px solid var(--glass-line);
-  border-radius: 6px 20px 20px 20px;
-  box-shadow: var(--lift-soft), var(--shine);
+  color: var(--text);
+  line-height: 1.65;
+}
+.msg.them::before {
+  content: attr(data-label);
+  display: block;
+  margin-bottom: .2rem;
+  font-size: .8rem; font-weight: 600; color: var(--ink);
+  white-space: normal;
 }
 .msg.them p { margin: 0 0 .75rem; }
 .msg.them p:last-child { margin-bottom: 0; }
 
+/* The customer's own words, in a soft grey bubble on the right. */
 .msg.me {
   align-self: flex-end;
   width: fit-content;
-  max-width: min(42ch, 82%);
-  background: linear-gradient(135deg, #2a9bff 0%, var(--brand-deep) 100%);
-  color: #fff;
-  padding: .65rem 1rem;
-  border-radius: 20px 20px 6px 20px;
-  box-shadow: 0 8px 22px -10px rgba(24, 139, 246, .7), inset 0 1px 0 rgba(255, 255, 255, .25);
-}
-.msg.reveal { animation: pop .38s var(--ease) both; }
-.msg.me.reveal { transform-origin: bottom right; }
-.msg.them.reveal { transform-origin: top left; }
-@keyframes pop {
-  from { opacity: 0; transform: translateY(6px) scale(.97); }
-  to   { opacity: 1; transform: none; }
+  max-width: min(40ch, 85%);
+  background: var(--fill);
+  color: var(--ink);
+  padding: .55rem .95rem;
+  border-radius: 18px 18px 6px 18px;
 }
 
 /* ── The question card ───────────────────────────────────── */
 
 .qcard {
-  max-width: 60ch;
+  max-width: var(--column);
   margin-bottom: 1rem;
-  border: 1px solid var(--glass-line);
-  border-radius: 22px;
-  background: var(--glass-strong);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  box-shadow: var(--lift), var(--shine);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
   overflow: hidden;
-  padding: .35rem;
 }
-/* The question on its own line; under it, the progress bar with the count at its end. */
+
+/* The question; under it, a thin progress bar with the count at its end. */
 .qcard__head {
-  display: flex; align-items: center; gap: .75rem;
-  padding: .85rem .85rem .75rem;
-  flex-wrap: wrap;
+  display: flex; align-items: center; flex-wrap: wrap; gap: .4rem .75rem;
+  padding: .95rem 1rem .8rem;
+  border-bottom: 1px solid var(--line);
 }
 .qcard__q {
   flex-basis: 100%;
-  font-size: 1.04rem; font-weight: 500; line-height: 1.4;
-  letter-spacing: -.01em;
+  font-size: 1rem; font-weight: 500; line-height: 1.45;
   white-space: pre-wrap;
 }
 .qcard__count {
   order: 3;
-  font-size: .76rem; font-weight: 500; color: var(--brand-deep);
-  white-space: nowrap;
-  padding: .2rem .6rem; border-radius: 999px;
-  background: var(--brand-soft);
+  font-size: .76rem; color: var(--muted); white-space: nowrap;
 }
-
-/* How far through the interview, as one segment per question. */
-.qcard__meter {
-  order: 2; flex: 1;
-  display: flex; gap: 3px;
-}
-.qcard__meter span {
-  flex: 1; height: 4px; border-radius: 99px;
-  background: rgba(12, 30, 51, .08);
-}
-.qcard__meter span.done { background: linear-gradient(90deg, #6fb8ff, var(--brand)); }
-.qcard__meter span.now { background: var(--brand); animation: now 1.6s ease-in-out infinite; }
-@keyframes now { 50% { opacity: .45; } }
+.qcard__meter { order: 2; flex: 1; display: flex; gap: 3px; }
+.qcard__meter span { flex: 1; height: 3px; border-radius: 99px; background: var(--fill-strong); }
+.qcard__meter span.done, .qcard__meter span.now { background: var(--ink); }
+.qcard__head:not(:has(.qcard__count)) { border-bottom: 0; }
 
 .qcard__row {
   display: flex; align-items: center; gap: .75rem;
   width: 100%;
-  padding: .55rem .75rem;
-  border: 1px solid transparent;
-  border-radius: 15px;
-  background: none; color: inherit;
+  padding: .55rem 1rem;
+  border: 0;
+  background: none; color: var(--text);
   font: inherit; font-size: .95rem; text-align: left;
   cursor: pointer; min-height: 50px;
-  transition: background .18s, border-color .18s, transform .18s var(--ease);
+  transition: background .12s;
 }
-.qcard__row + .qcard__row { margin-top: 2px; }
-.qcard__row:hover {
-  background: rgba(255, 255, 255, .9);
-  border-color: var(--glass-line);
-  box-shadow: var(--lift-soft);
-}
-.qcard__row:active { transform: scale(.99); }
+.qcard__row + .qcard__row { border-top: 1px solid var(--line); }
+.qcard__row:hover { background: var(--fill); }
 .qcard__label { flex: 1; min-width: 0; }
 
 /* Index badge: a label for the list, not a keyboard shortcut. */
 .qcard__n {
   display: grid; place-items: center;
-  width: 30px; height: 30px; flex-shrink: 0;
-  border-radius: 10px;
-  background: rgba(12, 30, 51, .05);
-  font-size: .8rem; font-weight: 500; color: var(--muted);
-  transition: background .18s, color .18s;
+  width: 26px; height: 26px; flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-size: .78rem; color: var(--muted);
+  transition: background .12s, color .12s, border-color .12s;
 }
-.qcard__n .ph { font-size: 1rem; }
-.qcard__row:hover .qcard__n { background: var(--brand); color: #fff; }
+.qcard__n .ph-light { font-size: .95rem; }
+.qcard__row:hover .qcard__n { background: var(--ink); border-color: var(--ink); color: #fff; }
 
-.qcard__go {
-  font-size: .95rem; color: var(--faint);
-  opacity: 0; transform: translateX(-4px);
-  transition: opacity .18s, transform .18s var(--ease);
-}
-.qcard__row:hover .qcard__go { opacity: 1; transform: none; color: var(--brand); }
+.qcard__go { font-size: .95rem; color: var(--faint); transition: transform .15s var(--ease), color .15s; }
+.qcard__row:hover .qcard__go { color: var(--ink); transform: translateX(2px); }
 
 .qcard__row--quiet { color: var(--muted); }
-.qcard__row--quiet:hover .qcard__n { background: rgba(12, 30, 51, .1); color: var(--ink); }
+.qcard__row--quiet:hover .qcard__n { background: var(--fill-strong); border-color: var(--line-strong); color: var(--ink); }
 
 /* The confirm step after a date is picked. */
-.qcard__row--use { color: var(--brand-deep); font-weight: 500; }
-.qcard__row--use .qcard__n { background: var(--brand); color: #fff; }
+.qcard__row--use { color: var(--ink); font-weight: 500; }
+.qcard__row--use .qcard__n { background: var(--ink); border-color: var(--ink); color: #fff; }
 
 /* The platform date control, invisible and covering its whole row, so a tap
    anywhere opens the native picker while the row shows our own label. */
 .qcard__row--date { position: relative; }
-.qcard__row--date .qcard__n { background: var(--brand-soft); color: var(--brand-deep); }
 .qcard__date {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
@@ -423,15 +334,14 @@ header.bar {
 }
 .qcard__aside {
   margin-left: auto;
-  font-size: .8rem; font-weight: 500; color: var(--muted);
-  border: 1px solid var(--hairline); border-radius: 999px;
-  padding: .3rem .75rem; background: rgba(255, 255, 255, .7);
-  transition: background .18s, color .18s;
+  font-size: .8rem; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: .2rem .7rem; background: var(--surface);
 }
-.qcard__aside:hover { background: #fff; color: var(--ink); }
+.qcard__aside:hover { background: var(--fill); color: var(--ink); }
 
 /* The slot the questions move through, one card at a time. */
-.slot { position: relative; margin-bottom: .65rem; }
+.slot { position: relative; margin-bottom: .6rem; }
 .slot:empty { display: none; }
 .slot .qcard {
   margin-bottom: 0;
@@ -441,53 +351,48 @@ header.bar {
 }
 
 /* Under 400ms: showCard removes the old card on a 400ms timer. */
-.qcard--in { animation: card-in .38s var(--ease) both; }
+.qcard--in { animation: card-in .3s var(--ease) both; }
 .qcard--out {
   position: absolute; inset: 0;
-  animation: card-out .26s ease both;
+  animation: card-out .2s ease both;
   pointer-events: none;
 }
 @keyframes card-in {
-  from { opacity: 0; transform: translateX(28px) scale(.98); filter: blur(3px); }
-  to   { opacity: 1; transform: none; filter: none; }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
 }
 @keyframes card-out {
-  from { opacity: 1; transform: none; }
-  to   { opacity: 0; transform: translateX(-28px) scale(.98); filter: blur(3px); }
+  from { opacity: 1; }
+  to   { opacity: 0; transform: translateY(-4px); }
 }
 
 /* The read-back before anything is sent: something to check, not read. */
 .recap {
   width: 100%;
-  max-width: 60ch;
-  margin-bottom: 1rem;
-  border: 1px solid var(--glass-line);
-  border-radius: 20px;
-  background: var(--glass-strong);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  box-shadow: var(--lift), var(--shine);
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
   overflow: hidden;
-  padding: .35rem 0;
 }
-.recap dl { margin: 0; display: grid; grid-template-columns: minmax(7.5rem, auto) 1fr; }
+.recap dl { margin: 0; display: grid; grid-template-columns: minmax(8rem, auto) 1fr; }
 .recap dt, .recap dd {
   margin: 0;
-  padding: .62rem 1rem;
-  border-bottom: 1px solid var(--hairline);
+  padding: .6rem 1rem;
+  border-bottom: 1px solid var(--line);
   font-size: .92rem;
 }
-.recap dt { color: var(--muted); font-size: .84rem; }
+.recap dt { color: var(--muted); font-size: .85rem; }
 .recap dd { color: var(--ink); font-weight: 500; overflow-wrap: anywhere; }
 .recap dl > :nth-last-child(-n+2) { border-bottom: 0; }
 .recap .pics {
   display: flex; align-items: center; gap: .45rem;
-  padding: .65rem 1rem .4rem;
-  border-top: 1px solid var(--hairline);
-  font-size: .86rem;
-  color: var(--muted);
+  padding: .6rem 1rem;
+  border-top: 1px solid var(--line);
+  font-size: .86rem; color: var(--muted);
 }
-.recap .pics .ph { font-size: 1.05rem; color: var(--brand); }
+.recap .pics .ph-light { font-size: 1.05rem; }
 @media (max-width: 480px) {
   .recap dl { grid-template-columns: 1fr; }
   .recap dt { padding-bottom: 0; border-bottom: 0; }
@@ -497,39 +402,29 @@ header.bar {
 /* The caret that follows the streaming text. */
 .caret {
   display: inline-block;
-  width: 2px; height: 1.05em;
-  background: var(--brand);
-  border-radius: 2px;
-  margin-left: 2px;
-  vertical-align: -.18em;
-  animation: blink 1.05s steps(2, start) infinite;
-}
-@keyframes blink { 50% { opacity: 0; } }
-
-.thinking {
-  align-self: flex-start;
-  display: flex; gap: 5px; align-items: center;
-  margin-bottom: 1rem;
-  padding: .85rem 1rem;
-  background: var(--glass-strong);
-  border: 1px solid var(--glass-line);
-  border-radius: 6px 20px 20px 20px;
-  box-shadow: var(--lift-soft), var(--shine);
-  animation: pop .3s var(--ease) both;
-}
-.thinking i {
   width: 7px; height: 7px; border-radius: 50%;
-  background: var(--brand);
+  background: var(--ink);
+  margin-left: 4px;
+  vertical-align: .05em;
+  animation: blink 1s ease-in-out infinite;
+}
+@keyframes blink { 50% { opacity: .2; } }
+
+.thinking { display: flex; gap: 5px; margin-bottom: 1.5rem; padding: .5rem 0; }
+.thinking i {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--faint);
   animation: bob 1.2s ease-in-out infinite;
 }
 .thinking i:nth-child(2) { animation-delay: .15s; }
 .thinking i:nth-child(3) { animation-delay: .3s; }
-@keyframes bob { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-4px); } }
+@keyframes bob { 0%, 60%, 100% { opacity: .35; } 30% { opacity: 1; } }
 
 /* ── Composer ─────────────────────────────────────────────── */
 
-footer.composer {
-  padding: .5rem var(--gut) calc(.75rem + env(safe-area-inset-bottom));
+footer.composer .column {
+  padding-top: .5rem;
+  padding-bottom: calc(.7rem + env(safe-area-inset-bottom));
 }
 
 /* Photo thumbnails and the read-back's buttons sit above the input. */
@@ -539,122 +434,93 @@ footer.composer {
 .opt {
   display: inline-flex; align-items: center; gap: .45rem;
   font: inherit; font-size: .9rem; font-weight: 500;
-  padding: 0 1rem; min-height: 42px;
+  padding: 0 1rem; min-height: 40px;
   border-radius: 999px;
-  border: 1px solid transparent;
-  background: linear-gradient(135deg, #2a9bff 0%, var(--brand-deep) 100%);
-  color: #fff;
+  border: 1px solid var(--ink);
+  background: var(--ink); color: #fff;
   cursor: pointer;
-  box-shadow: 0 8px 20px -10px rgba(24, 139, 246, .8), inset 0 1px 0 rgba(255, 255, 255, .3);
-  transition: transform .2s var(--ease), box-shadow .2s;
-  animation: pop .3s var(--ease) both;
+  transition: background .15s, border-color .15s;
 }
-.opt .ph { font-size: 1.05rem; }
-.opt:hover { transform: translateY(-1px); box-shadow: 0 12px 24px -10px rgba(24, 139, 246, .9), inset 0 1px 0 rgba(255, 255, 255, .3); }
-.opt:active { transform: scale(.97); }
-.opt.quiet {
-  color: var(--muted);
-  background: var(--glass);
-  border-color: var(--glass-line);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: var(--lift-soft), var(--shine);
-}
-.opt.quiet:hover { color: var(--ink); background: var(--glass-strong); }
+.opt .ph-light { font-size: 1.05rem; }
+.opt:hover { background: #333438; border-color: #333438; }
+.opt.quiet { background: var(--surface); color: var(--text); border-color: var(--line); }
+.opt.quiet:hover { background: var(--fill); border-color: var(--line-strong); }
 
 .box {
   display: flex; align-items: flex-end; gap: .35rem;
-  background: var(--glass-strong);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  border: 1px solid var(--glass-line);
-  border-radius: 26px;
-  padding: .35rem .35rem .35rem 1.1rem;
-  box-shadow: var(--lift), var(--shine);
-  transition: box-shadow .25s, border-color .25s;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 18px;
+  padding: .4rem .4rem .4rem 1.05rem;
+  box-shadow: var(--shadow);
+  transition: border-color .15s, box-shadow .15s;
 }
-.box:focus-within {
-  border-color: rgba(24, 139, 246, .45);
-  box-shadow: 0 0 0 4px var(--brand-soft), var(--lift), var(--shine);
-}
+.box:focus-within { border-color: #b9b9b4; box-shadow: 0 1px 2px rgba(20, 20, 20, .05), 0 8px 24px -8px rgba(20, 20, 20, .12); }
 
 .box textarea, .box input[type="date"] {
   flex: 1; border: 0; background: none; color: inherit;
   font: inherit; outline: none; resize: none;
-  padding: .6rem 0; max-height: 120px; line-height: 1.5;
+  padding: .55rem 0; max-height: 120px; line-height: 1.5;
   min-width: 0;
 }
 .box textarea::placeholder { color: var(--faint); }
 
 .icon {
-  width: 42px; height: 42px; flex: none;
+  width: 38px; height: 38px; flex: none;
   border: 0; border-radius: 50%;
   background: none; color: var(--muted);
   display: grid; place-items: center; cursor: pointer;
-  font-size: 1.3rem;
-  transition: background .18s, color .18s, transform .18s var(--ease);
+  font-size: 1.25rem;
+  transition: background .15s, color .15s;
 }
-.icon:hover { background: var(--brand-soft); color: var(--brand-deep); }
-.icon:active { transform: scale(.93); }
+.icon:hover { background: var(--fill); color: var(--ink); }
 
 .go {
-  width: 42px; height: 42px; flex: none;
+  width: 38px; height: 38px; flex: none;
   border: 0; border-radius: 50%;
-  background: linear-gradient(135deg, #2a9bff 0%, var(--brand-deep) 100%);
-  color: #fff;
+  background: var(--ink); color: #fff;
   display: grid; place-items: center; cursor: pointer;
-  font-size: 1.2rem;
-  box-shadow: 0 6px 16px -6px rgba(24, 139, 246, .8), inset 0 1px 0 rgba(255, 255, 255, .3);
-  transition: transform .2s var(--spring), background .2s, box-shadow .2s, color .2s;
+  font-size: 1.1rem;
+  transition: background .15s, color .15s;
 }
-.go:hover:not(:disabled) { transform: scale(1.06); }
-.go:active:not(:disabled) { transform: scale(.94); }
-.go:disabled {
-  cursor: default;
-  background: rgba(12, 30, 51, .07);
-  color: var(--faint);
-  box-shadow: none;
-}
+.go:hover:not(:disabled) { background: #333438; }
+.go:disabled { cursor: default; background: var(--fill-strong); color: var(--faint); }
 
 .foot {
-  display: flex; align-items: center; justify-content: center; gap: .35rem;
-  margin: .6rem 0 0;
-  font-size: .78rem; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .3rem;
+  margin: .55rem 0 0;
+  font-size: .76rem; color: var(--muted);
 }
-.foot .ph { font-size: .95rem; color: var(--brand); }
-.foot a { color: var(--ink); font-weight: 500; text-decoration: none; }
+.foot a { color: var(--text); text-decoration: none; font-weight: 500; }
 .foot a:hover { text-decoration: underline; }
 
 /* Builder credit: findable, not noticeable. */
-.by { margin: .25rem 0 0; text-align: center; font-size: .7rem; }
-.by a { color: var(--faint); text-decoration: none; transition: color .15s; }
-.by a:hover { color: var(--brand); text-decoration: underline; }
+.by { margin: .2rem 0 0; text-align: center; font-size: .7rem; }
+.by a { color: var(--faint); text-decoration: none; }
+.by a:hover { color: var(--muted); text-decoration: underline; }
 
 /* Photo thumbnails */
 .shot {
-  position: relative; width: 58px; height: 58px;
-  border-radius: 14px; overflow: hidden;
-  border: 2px solid #fff;
-  box-shadow: var(--lift-soft);
-  animation: pop .3s var(--ease) both;
+  position: relative; width: 54px; height: 54px;
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--line);
+  animation: fade .25s var(--ease) both;
 }
 .shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.shot.pending img { opacity: .4; }
+.shot.pending img { opacity: .35; }
 .shot.pending::after {
   content: ""; position: absolute; inset: 0; margin: auto;
-  width: 20px; height: 20px; border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, .9); border-top-color: var(--brand);
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .9); border-top-color: var(--ink);
   animation: spin .8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .shot button {
   position: absolute; top: 3px; right: 3px;
-  width: 20px; height: 20px; border: 0; border-radius: 50%;
+  width: 19px; height: 19px; border: 0; border-radius: 50%;
   display: grid; place-items: center;
-  background: rgba(6, 42, 82, .72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  color: #fff; font-size: .7rem; cursor: pointer; padding: 0;
+  background: rgba(27, 28, 30, .75); color: #fff;
+  font-size: .68rem; cursor: pointer; padding: 0;
 }
 
 .warn {
@@ -664,7 +530,7 @@ footer.composer {
 
 /* One focus style for everything you can tab to. */
 :is(.linkbtn, .chip, .qcard__row, .qcard__aside, .opt, .icon, .go, .shot button, .foot a, .by a):focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 .qcard__row:focus-visible { outline-offset: -2px; }
@@ -675,61 +541,67 @@ footer.composer {
 }
 </style>
 </head>
-<body>
-
-<div class="backdrop" aria-hidden="true"><span></span><span></span><span></span></div>
+<body data-agent="{{AGENT_NAME}}">
 
 <div class="app">
   <header class="bar">
-    <div class="avatar" aria-hidden="true">{{AGENT_INITIAL}}</div>
-    <div>
-      <div class="who-name">{{AGENT_NAME}} at Splendid Moving</div>
-      <div class="who-sub"><span class="dot"></span> Replies instantly</div>
+    <div class="column">
+      <div class="avatar" aria-hidden="true">{{AGENT_INITIAL}}</div>
+      <div>
+        <div class="who-name">{{AGENT_NAME}} at Splendid Moving</div>
+        <div class="who-sub"><span class="dot"></span> Replies instantly</div>
+      </div>
+      <div class="grow"></div>
+      <button class="linkbtn" id="restart" type="button"><i class="ph-light ph-arrow-counter-clockwise" aria-hidden="true"></i><span class="linkbtn__label">Start over</span></button>
     </div>
-    <div class="grow"></div>
-    <button class="linkbtn" id="restart" type="button"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i><span class="linkbtn__label">Start over</span></button>
     <div class="rail"><i id="rail"></i></div>
   </header>
 
   <main class="thread" id="thread" role="log" aria-live="polite" aria-label="Conversation">
-    <div class="hello" id="hello">
-      <div class="hello__avatar reveal" aria-hidden="true">{{AGENT_INITIAL}}</div>
-      <h1 class="reveal" style="animation-delay:.08s">Hi, I'm {{AGENT_NAME}}.</h1>
-      <p class="reveal" style="animation-delay:.16s">
-        I'm in the office here at Splendid Moving. Ask me anything about your
-        move, or I'll take a few details and get you a real estimate.
-      </p>
-      <!-- The estimate, then the questions people actually ask. Every one is
-           answered outright by knowledge/. The chip's text is the message sent,
-           so icons stay aria-hidden and contribute no text. -->
-      <div class="chips reveal" style="animation-delay:.24s">
-        <button class="chip chip--primary" type="button"><span class="chip__icon" aria-hidden="true"><i class="ph ph-calculator"></i></span>I'd like an estimate<i class="ph ph-arrow-right chip__go" aria-hidden="true"></i></button>
-        <button class="chip" type="button"><i class="ph ph-currency-dollar" aria-hidden="true"></i>How much do you charge?</button>
-        <button class="chip" type="button"><i class="ph ph-truck" aria-hidden="true"></i>Moving out of state</button>
-        <button class="chip" type="button"><i class="ph ph-package" aria-hidden="true"></i>What's included?</button>
-        <button class="chip" type="button"><i class="ph ph-receipt" aria-hidden="true"></i>Any hidden fees?</button>
-        <button class="chip" type="button"><i class="ph ph-shield-check" aria-hidden="true"></i>Is my stuff insured?</button>
+    <div class="column" id="messages">
+      <div class="hello" id="hello">
+        <h1 class="reveal">Hi, I'm {{AGENT_NAME}}.</h1>
+        <p class="reveal" style="animation-delay:.05s">
+          I'm in the office here at Splendid Moving. Ask me anything about your
+          move, or I'll take a few details and get you a real estimate.
+        </p>
+        <!-- Every .chip's text is the message it sends, so icons stay
+             aria-hidden and contribute no text. The two start tiles open the
+             estimate lane; each question below is answered by knowledge/. -->
+        <div class="starts reveal" style="animation-delay:.1s">
+          <button class="chip chip--start chip--primary" type="button"><i class="ph-light ph-calculator" aria-hidden="true"></i>I'd like an estimate</button>
+          <button class="chip chip--start" type="button"><i class="ph-light ph-truck" aria-hidden="true"></i>Moving out of state</button>
+        </div>
+        <div class="asked reveal" style="animation-delay:.15s">
+          <h2>Common questions</h2>
+          <button class="chip chip--ask" type="button"><i class="ph-light ph-currency-dollar" aria-hidden="true"></i>How much do you charge?<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
+          <button class="chip chip--ask" type="button"><i class="ph-light ph-package" aria-hidden="true"></i>What's included?<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
+          <button class="chip chip--ask" type="button"><i class="ph-light ph-receipt" aria-hidden="true"></i>Any hidden fees?<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
+          <button class="chip chip--ask" type="button"><i class="ph-light ph-shield-check" aria-hidden="true"></i>Is my stuff insured?<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
+        </div>
       </div>
     </div>
   </main>
 
   <footer class="composer">
-    <!-- The interview happens here: one card, held above the composer. -->
-    <div class="slot" id="slot" aria-live="polite"></div>
-    <div class="assist" id="assist"></div>
-    <div class="box" id="box">
-      <textarea id="input" rows="1" placeholder="Ask about your move…"
-                aria-label="Your message" autocomplete="off"></textarea>
-      <button class="icon" id="clip" type="button" aria-label="Add photos" hidden>
-        <i class="ph ph-paperclip" aria-hidden="true"></i>
-      </button>
-      <input type="file" id="picker" accept="image/*" multiple hidden />
-      <button class="go" id="send" type="button" aria-label="Send" disabled>
-        <i class="ph ph-arrow-up" aria-hidden="true"></i>
-      </button>
+    <div class="column">
+      <!-- The interview happens here: one card, held above the composer. -->
+      <div class="slot" id="slot" aria-live="polite"></div>
+      <div class="assist" id="assist"></div>
+      <div class="box" id="box">
+        <textarea id="input" rows="1" placeholder="Ask about your move…"
+                  aria-label="Your message" autocomplete="off"></textarea>
+        <button class="icon" id="clip" type="button" aria-label="Add photos" hidden>
+          <i class="ph-light ph-paperclip" aria-hidden="true"></i>
+        </button>
+        <input type="file" id="picker" accept="image/*" multiple hidden />
+        <button class="go" id="send" type="button" aria-label="Send" disabled>
+          <i class="ph-light ph-arrow-up" aria-hidden="true"></i>
+        </button>
+      </div>
+      <p class="foot">Or call any day, 6am–11pm: <a href="tel:+13236452636">(323) 645-2636</a></p>
+      <p class="by"><a href="https://simple-flow.co" target="_blank" rel="noopener noreferrer">Built by Simple&nbsp;Flow</a></p>
     </div>
-    <p class="foot"><i class="ph ph-phone" aria-hidden="true"></i>Or call any day, 6am–11pm: <a href="tel:+13236452636">(323) 645-2636</a></p>
-    <p class="by"><a href="https://simple-flow.co" target="_blank" rel="noopener noreferrer">Built by Simple&nbsp;Flow</a></p>
   </footer>
 </div>
 
@@ -755,7 +627,8 @@ footer.composer {
 const el = (id) => document.getElementById(id);
 const thread = el("thread"), input = el("input"), sendBtn = el("send");
 const assist = el("assist"), clip = el("clip"), picker = el("picker"), rail = el("rail");
-const slot = el("slot");
+const slot = el("slot"), messages = el("messages");
+const agentName = document.body.dataset.agent;
 
 /* Deliberately NOT persisted. A reload starts a fresh conversation.
    The thread id used to live in localStorage and outlive the page, which meant
@@ -771,7 +644,7 @@ let photos = [];        // [{id, url}] for the photo step
 /** A Phosphor icon, hidden from screen readers and from innerText. */
 function icon(name) {
   const i = document.createElement("i");
-  i.className = "ph ph-" + name;
+  i.className = "ph-light ph-" + name;
   i.setAttribute("aria-hidden", "true");
   return i;
 }
@@ -784,8 +657,11 @@ function bubble(who, text) {
   stripHello();
   const row = document.createElement("div");
   row.className = "msg " + who + " reveal";
+  // The name label above each reply is drawn by CSS from this attribute, so
+  // rewriting the reply's text never removes it.
+  if (who === "them") row.dataset.label = agentName;
   row.textContent = text || "";
-  thread.appendChild(row);
+  messages.appendChild(row);
   scroll();
   return row;
 }
@@ -797,7 +673,7 @@ function thinking(on) {
   const row = document.createElement("div");
   row.className = "thinking"; row.id = "dots";
   row.innerHTML = "<i></i><i></i><i></i>";
-  thread.appendChild(row);
+  messages.appendChild(row);
   scroll();
 }
 
@@ -929,7 +805,7 @@ function openQuestion(ask) {
     // the page, rather than in the height-capped slot.
     clearSlot();
     bubble("them", ask.message);
-    thread.appendChild(recap(ask));
+    messages.appendChild(recap(ask));
     scroll();
   } else {
     showCard(questionCard(ask));
@@ -967,7 +843,7 @@ function clearSlot() {
   setTimeout(() => leaving.remove(), 400);
 }
 
-/** One segment per question: answered, current, still to come. */
+/** One segment per question: answered and current filled, the rest empty. */
 function meter(step, total) {
   const bar = document.createElement("div");
   bar.className = "qcard__meter";
@@ -1039,7 +915,7 @@ function questionCard(ask) {
       aside.textContent = opts.aside;
       r.appendChild(aside);
     } else if (opts.index) {
-      const go = icon("caret-right");
+      const go = icon("arrow-right");
       go.classList.add("qcard__go");
       r.appendChild(go);
     }
