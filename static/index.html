@@ -165,36 +165,45 @@ header.bar {
   color: var(--muted); font-size: 1rem; line-height: 1.55;
 }
 
-/* Two start tiles side by side; they become two full rows on a narrow phone. */
+/* The two ways to start an estimate: one white card, two rows, built like the
+   question card the interview uses, so the page speaks one visual language. */
 .starts {
-  display: grid; grid-template-columns: 1fr 1fr; gap: .6rem;
   margin-top: 1.6rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 .chip--start {
-  display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
-  gap: 1.4rem;
-  min-height: 96px; padding: .9rem 1rem;
+  display: flex; align-items: center; gap: .85rem;
+  width: 100%; min-height: 60px; padding: .65rem 1rem .65rem .75rem;
   font: inherit; font-size: .95rem; font-weight: 500; text-align: left;
   color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  background: none; border: 0;
   cursor: pointer;
-  transition: background .15s, border-color .15s, transform .15s var(--ease);
+  transition: background .12s;
 }
-.chip--start .ph-light { font-size: 1.35rem; color: var(--muted); }
-.chip--start:hover { border-color: var(--line-strong); background: var(--fill); }
-.chip--start:active { transform: scale(.985); }
+.chip--start + .chip--start { border-top: 1px solid var(--line); }
+.chip--start:hover { background: var(--fill); }
 
-/* The one thing most people came to do. */
-.chip--primary { background: var(--ink); border-color: var(--ink); color: #fff; }
-.chip--primary .ph-light { color: rgba(255, 255, 255, .75); }
-.chip--primary:hover { background: #2f3034; border-color: #2f3034; }
-
-@media (max-width: 400px) {
-  .starts { grid-template-columns: 1fr; }
-  .chip--start { flex-direction: row; align-items: center; justify-content: flex-start; gap: .7rem; min-height: 56px; }
+/* The icon sits in a small tonal square, like the card's index badges. */
+.chip--start .ph-light:first-child {
+  display: grid; place-items: center;
+  width: 34px; height: 34px; flex: none;
+  border-radius: 10px;
+  background: var(--fill); color: var(--text);
+  font-size: 1.15rem;
 }
+.chip--start .ph-arrow-right {
+  margin-left: auto;
+  font-size: 1rem; color: var(--faint);
+  transition: color .15s, transform .15s var(--ease);
+}
+.chip--start:hover .ph-arrow-right { color: var(--ink); transform: translateX(2px); }
+
+/* The one thing most people came to do: marked by its dark badge, not a slab. */
+.chip--primary .ph-light:first-child { background: var(--ink); color: #fff; }
 
 /* Common questions: rows divided by hairlines, an arrow on the right. */
 .asked { margin-top: 1.75rem; }
@@ -569,8 +578,8 @@ footer.composer .column {
              aria-hidden and contribute no text. The two start tiles open the
              estimate lane; each question below is answered by knowledge/. -->
         <div class="starts reveal" style="animation-delay:.1s">
-          <button class="chip chip--start chip--primary" type="button"><i class="ph-light ph-calculator" aria-hidden="true"></i>I'd like an estimate</button>
-          <button class="chip chip--start" type="button"><i class="ph-light ph-truck" aria-hidden="true"></i>Moving out of state</button>
+          <button class="chip chip--start chip--primary" type="button"><i class="ph-light ph-calculator" aria-hidden="true"></i>I'd like an estimate<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
+          <button class="chip chip--start" type="button"><i class="ph-light ph-truck" aria-hidden="true"></i>Moving out of state<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
         </div>
         <div class="asked reveal" style="animation-delay:.15s">
           <h2>Common questions</h2>
