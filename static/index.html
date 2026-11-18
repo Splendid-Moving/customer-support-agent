@@ -84,9 +84,8 @@ header.bar {
 .avatar {
   width: 32px; height: 32px; flex: none;
   border-radius: 50%;
-  background: var(--ink); color: #fff;
-  display: grid; place-items: center;
-  font-size: .8rem; font-weight: 600;
+  display: block;
+  object-fit: contain;
 }
 
 .who-name { font-weight: 600; font-size: .93rem; letter-spacing: -.01em; line-height: 1.3; white-space: nowrap; }
@@ -505,7 +504,7 @@ footer.composer .column {
 <div class="app">
   <header class="bar">
     <div class="column">
-      <div class="avatar" aria-hidden="true">{{AGENT_INITIAL}}</div>
+      <img class="avatar" src="/logo.png" width="32" height="32" alt="" />
       <div class="who-name">Splendid Moving</div>
       <div class="grow"></div>
       <button class="linkbtn" id="restart" type="button"><i class="ph-light ph-arrow-counter-clockwise" aria-hidden="true"></i><span class="linkbtn__label">Start over</span></button>

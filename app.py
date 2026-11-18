@@ -253,6 +253,12 @@ def index():
     return HTMLResponse(_page((STATIC / "index.html").stat().st_mtime_ns))
 
 
+@app.get("/logo.png", include_in_schema=False)
+def company_logo():
+    """The official Splendid S mark used in the chat header."""
+    return FileResponse(STATIC / "splendid-logo.png", media_type="image/png")
+
+
 @app.get("/health")
 def health():
     """Railway's health check. Deliberately reveals no configuration."""

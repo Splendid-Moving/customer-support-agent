@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-18 — Official Splendid header logo
+- Changed: replaced the typed S avatar with the existing official blue-and-white S image from the operations app, served locally at `/logo.png`.
+- Verified: `pytest -q` 277 passed, 1 deselected; local logo response matches the source image byte for byte; inspected mobile (390×844) and desktop (1440×900) screenshots.
+
 ## 2026-11-18 — Fewer welcome shortcuts
 - Changed: removed “How much do you charge?” and “Is my stuff insured?” from the welcome list, leaving four shortcuts to reduce clutter.
 - Verified: `pytest -q` 277 passed, 1 deselected; inspected mobile (390×844) and desktop (1440×900) screenshots. Updated the existing browser reset check to expect four shortcuts.

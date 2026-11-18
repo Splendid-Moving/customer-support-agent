@@ -112,6 +112,7 @@ what makes this safe to leave running on a public URL.
 | `agent/` | The graph. `state.py` is the shared memory, `graph.py` wires it together, `nodes/` is one file per step. |
 | `services/` | The outside world — the knowledge loader, Resend, photo storage. Nothing here knows the agent exists. |
 | `static/index.html` | The chat page. One file, no build step. Flat and neutral: off-white page, a short “Ask me anything” welcome, and one “Start here” list for four shortcuts. Estimate requests and out-of-state moves use the same quiet rows as the questions. Hanken Grotesk font and thin Phosphor icons (both loaded from CDNs). |
+| `static/splendid-logo.png` | Official Splendid S mark, copied unchanged from the operations app’s `public/icon-192.png`. Served at `/logo.png` for the chat header. |
 | `scripts/import_kb.py` | Turns the KB spreadsheet into the markdown the agent reads. |
 | `tests/` | 207 checks that run in under a second, with no API key and no network. |
 
