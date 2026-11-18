@@ -48,7 +48,7 @@ async function finished(page) {
     await prepare(page, [
       { delay: 150, event: { event: "token", text: "Our crew " } },
       { delay: 300, event: { event: "token", text: reply.slice(9) } },
-      { delay: 700, event: { event: "done", reply } },
+      { delay: 700, event: { event: "done", reply: "", streamed: true } },
     ]);
     await page.locator(".caret").waitFor();
     const cursor = await page.locator(".caret").elementHandle();
@@ -63,7 +63,7 @@ async function finished(page) {
     await prepare(page, [
       { delay: 200, event: { event: "token", text: burst } },
       { delay: 600, event: { event: "token", text: ending } },
-      { delay: 500, event: { event: "done", reply: burst + ending } },
+      { delay: 500, event: { event: "done", reply: "", streamed: true } },
     ]);
     await page.evaluate(() => {
       window.visibleLengths = [];

@@ -814,14 +814,15 @@ async function exchange(payload, echo) {
       if (stream) stream.cancel();
       if (live) live.remove();
       openQuestion(evt.ask);
-    } else if (evt.reply) {
+    } else {
       // No question came back, so the interview is over — sent, cancelled, or
       // never running in the first place.
       clearSlot();
       // Corrected text: either nothing was streamed, or what was streamed
       // failed the voice/pricing check and has been rewritten.
-      if (stream) stream.finish(evt.reply);
-      else bubble("them", evt.reply);
+      // An empty reply with streamed:true approves the text already received.
+      if (stream) stream.finish(evt.reply || undefined);
+      else if (evt.reply) bubble("them", evt.reply);
     }
   } catch (_) {
     const message = "The connection dropped. Please try again.";

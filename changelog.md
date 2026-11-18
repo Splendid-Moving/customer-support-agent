@@ -2,6 +2,7 @@
 
 ## 2026-11-18 — Smoother streaming replies
 - Changed: incoming words now fade in gently through a short adaptive buffer, with one persistent breathing cursor instead of rebuilding the reply on every chunk. Added a quiet three-bar thinking wave and subtle send-button press feedback.
+- Fixed during live verification: unchanged replies finish with an empty approval event; that event now flushes the buffered final words, covered by the controlled-stream checks.
 - Preserved: approved final text replaces drafts immediately; interview transitions cancel pending text; reduced-motion mode skips pacing. Dropped streams stop their indicator and show a retry message.
 - Verified: `pytest -q` 277 passed, 1 deselected; controlled-stream browser checks passed for bursts, cursor continuity, corrections, interruptions, scrolling and reduced motion; real local DRY_RUN conversation checks 9/9 passed. Inspected thinking, streaming and completed replies at 390×844 and 1440×900.
 
