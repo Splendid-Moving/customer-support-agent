@@ -9,7 +9,9 @@ the last few bugs lived, and none of them were visible from Python:
 - the read-back numbered "Question 10 of 10" when it is not a question
 - the read-back clipped halfway down the one screen a customer is asked to check
 
-They cost model calls, so they are not part of `pytest`.
+The conversation and interview suites cost model calls, so they are not part of
+`pytest`. The streaming suite uses controlled browser streams and makes no model
+calls.
 
 ## Running them
 
@@ -23,6 +25,7 @@ They cost model calls, so they are not part of `pytest`.
     BASE=http://localhost:8812 node tests/browser/interview.js
     BASE=http://localhost:8812 node tests/browser/edges.js
     BASE=http://localhost:8812 node tests/browser/conversation.js
+    BASE=http://localhost:8812 node tests/browser/streaming.js
 
 `DRY_RUN=true` matters: these fill in whole leads, and without it every run
 emails the office.
@@ -32,8 +35,9 @@ emails the office.
 | `interview.js` | A whole estimate on a phone-sized screen: one card at a time, the counter, the date step's two taps, choices, skips, photos asked twice, the read-back, sending. |
 | `edges.js` | A small phone (375×667), "Something else", a rejected phone number, and the same interview in Russian. |
 | `conversation.js` | That an ordinary question still reads as a chat, that an estimate then starts an interview, and that "Start over" leaves nothing behind. |
+| `streaming.js` | Burst pacing, a persistent cursor, approved corrections, interview transitions, dropped connections, user scrolling and reduced motion; no model calls. |
 
-Run them **one at a time**. The app allows 40 messages a minute per visitor,
+Run the model-backed suites **one at a time**. The app allows 40 messages a minute per visitor,
 and all three at once from one machine go over it: the page gets a 429 and the
 test times out waiting for a question that never comes.
 

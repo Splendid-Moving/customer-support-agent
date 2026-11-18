@@ -237,6 +237,14 @@ to the browser token by token, and `answer_check` only finishes afterwards. If a
 draft is rejected, the `done` event carries corrected text and the browser swaps
 it in. In the common case they are identical and nothing is swapped.
 
+The browser buffers uneven chunks into short word reveals, with a soft fade and
+one persistent breathing cursor. Large bursts catch up quickly; the final event
+flushes any remaining text immediately. A correction or interview transition
+cancels the queued draft. Reduced-motion mode displays chunks directly. The
+waiting indicator uses a quiet three-bar wave, and a dropped stream stops its
+animation and shows a retry message. `tests/browser/streaming.js` checks these
+states with controlled streams and no model calls.
+
 **The interview is Python, not a model.** `collect_lead` walks a fixed list of
 fields. A model-run interview asks better questions and can loop forever, and
 whatever it decides a field contains lands in an email a manager acts on. The two
