@@ -81,6 +81,13 @@ header.bar {
   padding-bottom: .75rem;
 }
 
+.brand-link {
+  display: grid; place-items: center;
+  width: 44px; height: 44px; flex: none;
+  margin: -6px;
+  border-radius: 50%;
+}
+
 .avatar {
   width: 32px; height: 32px; flex: none;
   border-radius: 50%;
@@ -499,7 +506,7 @@ footer.composer .column {
 }
 
 /* One focus style for everything you can tab to. */
-:is(.linkbtn, .chip, .qcard__row, .qcard__aside, .opt, .icon, .go, .shot button, .foot a, .by a):focus-visible {
+:is(.brand-link, .linkbtn, .chip, .qcard__row, .qcard__aside, .opt, .icon, .go, .shot button, .foot a, .by a):focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
@@ -516,7 +523,9 @@ footer.composer .column {
 <div class="app">
   <header class="bar">
     <div class="column">
-      <img class="avatar" src="/logo.png" width="32" height="32" alt="" />
+      <a class="brand-link" href="https://splendidmoving.com/" aria-label="Splendid Moving home">
+        <img class="avatar" src="/logo.png" width="32" height="32" alt="" />
+      </a>
       <div class="who-name">Splendid Moving</div>
       <div class="grow"></div>
       <button class="linkbtn" id="restart" type="button"><i class="ph-light ph-arrow-counter-clockwise" aria-hidden="true"></i><span class="linkbtn__label">Start over</span></button>

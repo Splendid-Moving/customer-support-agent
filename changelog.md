@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-18 — Logo links to the main website
+- Changed: tapping the header logo opens splendidmoving.com in the same tab. Added a 44px touch target and visible keyboard focus without changing the logo's size or position.
+- Verified: clicked through to the homepage at 390×844 and 1440×900; inspected both screenshots and measured the touch target. `pytest -q` 277 passed, 1 deselected.
+
 ## 2026-11-18 — Smoother streaming replies
 - Changed: incoming words now fade in gently through a short adaptive buffer, with one persistent breathing cursor instead of rebuilding the reply on every chunk. Added a quiet three-bar thinking wave and subtle send-button press feedback.
 - Fixed during live verification: unchanged replies finish with an empty approval event; that event now flushes the buffered final words, covered by the controlled-stream checks.
