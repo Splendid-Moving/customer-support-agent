@@ -346,8 +346,8 @@ def test_the_page_is_served_with_the_agent_name_filled_in():
     html = web._page((web.STATIC / "index.html").stat().st_mtime_ns)
     assert "{{AGENT_NAME}}" not in html
     assert "{{AGENT_INITIAL}}" not in html
-    assert f"Hi, I'm {persona.AGENT_NAME}." in html
-    assert f"{persona.AGENT_NAME} at Splendid Moving" in html
+    assert f"I'm {persona.AGENT_NAME}, here to help with your move." in html
+    assert '<div class="who-name">Splendid Moving</div>' in html
 
 
 def test_the_page_never_names_the_agent_twice():

@@ -12,11 +12,10 @@
 <style>
 /* ─────────────────────────────────────────────────────────────
    The customer chat page. Flat and neutral: an off-white page,
-   white surfaces with hairline borders, near-black for text and
-   the one primary button, grey for everything secondary. The
-   agent's answers read as plain text under a small name label;
-   the customer's messages sit in soft grey bubbles. Thin
-   Phosphor icons, one sans family, small fades for motion.
+   white surfaces with hairline borders and near-black text.
+   The welcome screen has one short greeting and a quiet list of
+   conversation starters. Replies read as plain text under a name
+   label; customer messages sit in soft grey bubbles.
    ───────────────────────────────────────────────────────────── */
 
 :root {
@@ -91,11 +90,6 @@ header.bar {
 }
 
 .who-name { font-weight: 600; font-size: .93rem; letter-spacing: -.01em; line-height: 1.3; white-space: nowrap; }
-.who-sub {
-  display: flex; align-items: center; gap: .4rem;
-  font-size: .78rem; color: var(--muted); line-height: 1.3;
-}
-.dot { width: 6px; height: 6px; border-radius: 50%; background: #3f9b6b; }
 
 .bar .grow { flex: 1; }
 
@@ -147,84 +141,40 @@ header.bar {
    (the read-back) otherwise squashes and cuts off instead of scrolling. */
 .thread .column > * { flex-shrink: 0; }
 
-/* Opening screen: a greeting, two ways to start an estimate, then the
-   questions people ask most, as a quiet list. Left-aligned, like the replies. */
+/* One invitation and one list: each shortcut has the same quiet weight. */
 .hello {
   margin: auto 0;
   padding: 1rem 0 1.5rem;
 }
 .hello h1 {
-  margin: 0 0 .45rem;
+  margin: 0 0 .65rem;
   font-weight: 500;
-  font-size: clamp(1.65rem, 5.5vw, 2rem);
+  font-size: clamp(1.85rem, 6.5vw, 2.25rem);
   line-height: 1.15;
-  letter-spacing: -.025em;
+  letter-spacing: -.03em;
 }
 .hello p {
-  margin: 0; max-width: 30rem;
-  color: var(--muted); font-size: 1rem; line-height: 1.55;
+  margin: 0;
+  color: var(--muted); font-size: .95rem; line-height: 1.55;
 }
 
-/* The two ways to start an estimate: one white card, two rows, built like the
-   question card the interview uses, so the page speaks one visual language. */
-.starts {
-  margin-top: 1.6rem;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.chip--start {
-  display: flex; align-items: center; gap: .85rem;
-  width: 100%; min-height: 60px; padding: .65rem 1rem .65rem .75rem;
-  font: inherit; font-size: .95rem; font-weight: 500; text-align: left;
-  color: var(--ink);
-  background: none; border: 0;
-  cursor: pointer;
-  transition: background .12s;
-}
-.chip--start + .chip--start { border-top: 1px solid var(--line); }
-.chip--start:hover { background: var(--fill); }
-
-/* The icon sits in a small tonal square, like the card's index badges. */
-.chip--start .ph-light:first-child {
-  display: grid; place-items: center;
-  width: 34px; height: 34px; flex: none;
-  border-radius: 10px;
-  background: var(--fill); color: var(--text);
-  font-size: 1.15rem;
-}
-.chip--start .ph-arrow-right {
-  margin-left: auto;
-  font-size: 1rem; color: var(--faint);
-  transition: color .15s, transform .15s var(--ease);
-}
-.chip--start:hover .ph-arrow-right { color: var(--ink); transform: translateX(2px); }
-
-/* The one thing most people came to do: marked by its dark badge, not a slab. */
-.chip--primary .ph-light:first-child { background: var(--ink); color: #fff; }
-
-/* Common questions: rows divided by hairlines, an arrow on the right. */
 .asked { margin-top: 1.75rem; }
 .asked h2 {
-  margin: 0 0 .3rem;
+  margin: 0 0 .35rem;
   font-size: .8rem; font-weight: 500; color: var(--muted);
 }
-.chip--ask {
-  display: flex; align-items: center; gap: .75rem;
-  width: 100%; min-height: 48px; padding: 0 .25rem;
+.chip {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  width: 100%; min-height: 44px; padding: .55rem 0;
   font: inherit; font-size: .95rem; color: var(--text); text-align: left;
   background: none; border: 0; border-bottom: 1px solid var(--line);
   cursor: pointer;
-  transition: color .15s;
+  transition: color .15s, background .15s;
 }
-.chip--ask:last-child { border-bottom: 0; }
-.chip--ask .ph-light { font-size: 1.1rem; color: var(--faint); transition: color .15s, transform .15s var(--ease); }
-.chip--ask .ph-arrow-right { margin-left: auto; font-size: 1rem; }
-.chip--ask:hover { color: var(--ink); }
-.chip--ask:hover .ph-light { color: var(--ink); }
-.chip--ask:hover .ph-arrow-right { transform: translateX(2px); }
+.chip:last-child { border-bottom: 0; }
+.chip .ph-light { font-size: 1rem; flex: none; color: var(--faint); }
+.chip:hover { color: var(--ink); background: var(--fill); }
+.chip:hover .ph-light { color: var(--ink); }
 
 .reveal { animation: fade .35s var(--ease) both; }
 @keyframes fade {
@@ -556,10 +506,7 @@ footer.composer .column {
   <header class="bar">
     <div class="column">
       <div class="avatar" aria-hidden="true">{{AGENT_INITIAL}}</div>
-      <div>
-        <div class="who-name">{{AGENT_NAME}} at Splendid Moving</div>
-        <div class="who-sub"><span class="dot"></span> Replies instantly</div>
-      </div>
+      <div class="who-name">Splendid Moving</div>
       <div class="grow"></div>
       <button class="linkbtn" id="restart" type="button"><i class="ph-light ph-arrow-counter-clockwise" aria-hidden="true"></i><span class="linkbtn__label">Start over</span></button>
     </div>
@@ -569,24 +516,18 @@ footer.composer .column {
   <main class="thread" id="thread" role="log" aria-live="polite" aria-label="Conversation">
     <div class="column" id="messages">
       <div class="hello" id="hello">
-        <h1 class="reveal">Hi, I'm {{AGENT_NAME}}.</h1>
-        <p class="reveal" style="animation-delay:.05s">
-          I'm in the office here at Splendid Moving. Ask me anything about your
-          move, or I'll take a few details and get you a real estimate.
-        </p>
-        <!-- Every .chip's text is the message it sends, so icons stay
-             aria-hidden and contribute no text. The two start tiles open the
-             estimate lane; each question below is answered by knowledge/. -->
-        <div class="starts reveal" style="animation-delay:.1s">
-          <button class="chip chip--start chip--primary" type="button"><i class="ph-light ph-calculator" aria-hidden="true"></i>I'd like an estimate<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
-          <button class="chip chip--start" type="button"><i class="ph-light ph-truck" aria-hidden="true"></i>Moving out of state<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
-        </div>
-        <div class="asked reveal" style="animation-delay:.15s">
-          <h2>Common questions</h2>
-          <button class="chip chip--ask" type="button"><i class="ph-light ph-currency-dollar" aria-hidden="true"></i>How much do you charge?<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
-          <button class="chip chip--ask" type="button"><i class="ph-light ph-package" aria-hidden="true"></i>What's included?<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
-          <button class="chip chip--ask" type="button"><i class="ph-light ph-receipt" aria-hidden="true"></i>Any hidden fees?<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
-          <button class="chip chip--ask" type="button"><i class="ph-light ph-shield-check" aria-hidden="true"></i>Is my stuff insured?<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
+        <h1 class="reveal">Ask me anything.</h1>
+        <p class="reveal" style="animation-delay:.05s">I'm {{AGENT_NAME}}, here to help with your move.</p>
+        <!-- Each shortcut sends its visible text. Keep the two estimate
+             starters alongside the questions, with no separate promotion. -->
+        <div class="asked reveal" style="animation-delay:.1s">
+          <h2>Start here</h2>
+          <button class="chip" type="button">I'd like an estimate<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
+          <button class="chip" type="button">Moving out of state<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
+          <button class="chip" type="button">How much do you charge?<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
+          <button class="chip" type="button">What's included?<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
+          <button class="chip" type="button">Any hidden fees?<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
+          <button class="chip" type="button">Is my stuff insured?<i class="ph-light ph-arrow-right" aria-hidden="true"></i></button>
         </div>
       </div>
     </div>
