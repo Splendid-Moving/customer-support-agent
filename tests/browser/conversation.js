@@ -53,7 +53,7 @@ async function idle(p, timeout = 45000) {
   await p.locator("#restart").click();
   await p.waitForLoadState("domcontentloaded");
   await p.waitForTimeout(700);
-  check((await p.locator(".chip").count()) === 6, "back to the welcome screen");
+  check((await p.locator(".chip").count()) === 4, "back to the welcome screen");
   check((await p.locator(".msg").count()) === 0, "with nothing carried over");
   check(await p.locator("#slot").isHidden(), "and no card");
 

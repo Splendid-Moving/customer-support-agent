@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-18 — Fewer welcome shortcuts
+- Changed: removed “How much do you charge?” and “Is my stuff insured?” from the welcome list, leaving four shortcuts to reduce clutter.
+- Verified: `pytest -q` 277 passed, 1 deselected; inspected mobile (390×844) and desktop (1440×900) screenshots. Updated the existing browser reset check to expect four shortcuts.
+
 ## 2026-11-18 — Simpler chat welcome
 - Changed: replaced the long introduction with “Ask me anything” and one short sentence. Merged estimate, out-of-state and question shortcuts into one “Start here” list; removed the separate card, icon badges and instant-reply status.
 - Verified: `pytest -q` 277 passed, 1 deselected; local DRY_RUN browser conversation checks 9/9 passed. Inspected screenshots at 390×844, 320×568 and 1440×900; shortcut rows retain 44px touch targets, the smaller screen scrolls, and the composer stays visible.
